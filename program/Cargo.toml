@@ -1,5 +1,5 @@
 [package]
-name = "solana-user-token-vault"
+name = "solana-lottery"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,5 +13,5 @@ spl-token = "6.0.0"
 no-entrypoint = []
 
 [lib]
-name = "solana_user_token_vault"
+name = "lottery_program"
 crate-type = ["cdylib", "lib"]

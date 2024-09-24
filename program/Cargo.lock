@@ -986,6 +986,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
+name = "solana-lottery"
+version = "0.1.0"
+dependencies = [
+ "borsh 1.5.1",
+ "borsh-derive 1.5.1",
+ "solana-program",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
 name = "solana-program"
 version = "2.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1042,16 +1053,6 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.77",
-]
-
-[[package]]
-name = "solana-user-token-vault"
-version = "0.1.0"
-dependencies = [
- "borsh 1.5.1",
- "borsh-derive 1.5.1",
- "solana-program",
- "spl-token",
 ]
 
 [[package]]

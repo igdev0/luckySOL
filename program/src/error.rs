@@ -2,7 +2,7 @@ use solana_program::program_error::ProgramError;
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
-enum LotteryError {
+pub enum LotteryError {
     #[error("Incorrect owner set")]
     IncorrectOwner,
 }

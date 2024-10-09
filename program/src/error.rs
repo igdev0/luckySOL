@@ -5,6 +5,8 @@ use thiserror::Error;
 pub enum LotteryError {
     #[error("Incorrect owner set")]
     IncorrectOwner,
+    #[error("Not implemented yet.")]
+    NotImplemented,
 }
 
 impl From<LotteryError> for ProgramError {

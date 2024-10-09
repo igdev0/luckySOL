@@ -6,7 +6,7 @@ pub type Guesses = [DraftNumbers; 4];
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
 pub enum LotoInstruction {
-    Initialize,
+    Initialize(AccountData),
     PurchaseTickets { guesses: Vec<DraftNumbers> },
     SelectWinners(DraftNumbers),
     CloseAccount,

@@ -9,7 +9,10 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-use crate::state::{AccountData, LotoInstruction};
+use crate::{
+    error::LotteryError,
+    state::{AccountData, LotoInstruction},
+};
 
 pub fn processor(
     program_id: &Pubkey,
@@ -21,9 +24,9 @@ pub fn processor(
         LotoInstruction::Initialize(account_data) => {
             process_initialization(program_id, accounts, account_data)
         }
-        LotoInstruction::CloseAccount => Ok(()),
-        LotoInstruction::PurchaseTickets { guesses: _ } => Ok(()),
-        LotoInstruction::SelectWinners(_winners) => Ok(()),
+        LotoInstruction::CloseAccount => Err(LotteryError::NotImplemented.into()),
+        LotoInstruction::PurchaseTickets { guesses: _ } => Err(LotteryError::NotImplemented.into()),
+        LotoInstruction::SelectWinners(_winners) => Err(LotteryError::NotImplemented.into()),
     }
 }
 

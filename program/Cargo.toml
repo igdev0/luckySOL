@@ -16,3 +16,7 @@ no-entrypoint = []
 [lib]
 name = "lottery_program"
 crate-type = ["cdylib", "lib"]
+
+[dev-dependencies]
+solana-program-test = "2.0.13"
+solana-sdk = "2.0.13"

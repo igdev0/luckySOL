@@ -6,7 +6,6 @@ use borsh::{to_vec, BorshDeserialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    msg,
     program::invoke_signed,
     pubkey::Pubkey,
     rent::Rent,
@@ -43,7 +42,7 @@ fn process_initialization(
     // Rent exempt check
     let rent = Rent::get()?;
     let space = std::mem::size_of::<TicketAccountData>() - 4;
-    msg!("Space: {}", space);
+
     if !rent.is_exempt(payer.lamports(), space) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
@@ -51,7 +50,6 @@ fn process_initialization(
     if !payer.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
-    msg!("{} = owner", &vault_pda.owner.to_string());
 
     if !vault_pda.data_is_empty() {
         return Err(solana_program::program_error::ProgramError::AccountAlreadyInitialized);

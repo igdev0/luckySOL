@@ -14,7 +14,7 @@ thiserror = "1.0.64"
 no-entrypoint = []
 
 [lib]
-name = "lottery_program"
+name = "solana_lottery_program"
 crate-type = ["cdylib", "lib"]
 
 [dev-dependencies]

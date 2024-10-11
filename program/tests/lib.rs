@@ -74,5 +74,4 @@ async fn initialize_player_account() {
 
     dbg!(&account_data);
     assert_eq!(account_data.ticket, ticket);
-    // assert!(transaction_status.is_ok());
 }

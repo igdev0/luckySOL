@@ -1,6 +1,8 @@
+use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
+
 use solana_lottery_program::{
     processor::processor as lottery_processor,
-    state::{DraftNumbers, LotoInstruction, TicketAccountData},
+    state::{LotoInstruction, TicketAccountData},
 };
 use solana_program_test::*;
 use solana_sdk::{
@@ -30,13 +32,21 @@ async fn initialize_player_account() {
 
     let (mut client, .., recent_blockhash) = program_test.start().await;
 
-    let player_balance = client.get_balance(player_key.pubkey()).await.unwrap();
-    assert_eq!(player_balance, 100_000_000_000_000);
-    let guess: DraftNumbers = [10, 20, 40, 34, 20, 12, 47];
-    let ticket = [guess, [0; 7], [0; 7], [0; 7]];
+    let tickets = ["0", "1", "2", "3", "4"];
+    let leaves: Vec<[u8; 32]> = tickets
+        .iter()
+        .map(|ticket| Sha256::hash(ticket.as_bytes()))
+        .collect();
+
+    let merkle_tree = MerkleTree::<Sha256>::from_leaves(&leaves);
+    let merkle_root = merkle_tree
+        .root()
+        .ok_or("There was some error while processing merkle root")
+        .expect("Wasn't able to get the root of the merkle tree");
+
     let instruction_data = LotoInstruction::Initialize(TicketAccountData {
-        ticket,
-        account_index: 0,
+        address: player_key.pubkey(),
+        merkle_root,
     });
 
     let (player_vault, ..) =
@@ -73,5 +83,5 @@ async fn initialize_player_account() {
         );
 
     dbg!(&account_data);
-    assert_eq!(account_data.ticket, ticket);
+    assert_eq!(account_data.merkle_root, merkle_root);
 }

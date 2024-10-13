@@ -41,7 +41,7 @@ fn process_initialization(
     let vault_pda = next_account_info(&mut accounts)?;
     // Rent exempt check
     let rent = Rent::get()?;
-    let space = std::mem::size_of::<TicketAccountData>() - 4;
+    let space = std::mem::size_of::<TicketAccountData>();
 
     if !rent.is_exempt(payer.lamports(), space) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);

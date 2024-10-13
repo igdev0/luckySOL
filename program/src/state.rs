@@ -1,23 +1,23 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-
-// The last number is optional, if user does not want to the add bonus number, then it will be zero.
-
-pub type DraftNumbers = [u8; 7];
-pub type Ticket = [DraftNumbers; 4];
+use solana_program::pubkey::Pubkey;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
 pub enum LotoInstruction {
     Initialize(TicketAccountData),
-    PurchaseTicket { ticket: Ticket },
-    SelectWinners(DraftNumbers),
+    PurchaseTicket { ticket: TicketAccountData },
+    SelectWinners(TicketAccountData),
     CloseAccount,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct TicketAccountData {
-    // The account index, when fully filled the program will create a new account
-    pub account_index: usize,
-    // The actual tickets containing guesses, maximum 4 guesses per ticket
-    pub ticket: Ticket,
-    // The number of tickets filled, scluding the empty tickets
+    // The merkle root of the ticket stored offchain
+    pub merkle_root: [u8; 32],
+    // The address of the account purchasing the ticket
+    pub address: Pubkey,
+}
+
+#[derive(Debug, BorshSerialize, BorshDeserialize)]
+pub struct PoolAccount {
+    pub lamports: u64,
 }

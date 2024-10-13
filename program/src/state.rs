@@ -6,7 +6,7 @@ pub enum LotoInstruction {
     InitializePool,
     PurchaseTicket(TicketAccountData),
     SelectWinnersAndAirdrop(),
-    CloseAccount,
+    ClosePlayerAccount,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]

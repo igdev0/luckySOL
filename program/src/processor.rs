@@ -24,7 +24,7 @@ pub fn processor(
         LotoInstruction::PurchaseTicket(account_data) => {
             process_player_initialization(program_id, accounts, account_data)
         }
-        LotoInstruction::CloseAccount => Err(LotteryError::NotImplemented.into()),
+        LotoInstruction::ClosePlayerAccount => Err(LotteryError::NotImplemented.into()),
         LotoInstruction::SelectWinnersAndAirdrop() => Err(LotteryError::NotImplemented.into()),
     }
 }

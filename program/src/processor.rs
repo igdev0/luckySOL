@@ -1,6 +1,6 @@
 use crate::{
     error::LotteryError,
-    state::{LotoInstruction, TicketAccountData},
+    state::{LotoInstruction, PoolAccount, TicketAccountData},
 };
 use borsh::{to_vec, BorshDeserialize};
 use solana_program::{
@@ -20,16 +20,53 @@ pub fn processor(
 ) -> ProgramResult {
     let instr = LotoInstruction::try_from_slice(instruction_data)?;
     match instr {
-        LotoInstruction::Initialize(account_data) => {
-            process_initialization(program_id, accounts, account_data)
+        LotoInstruction::InitializePool => process_pool_initialization(program_id, accounts),
+        LotoInstruction::PurchaseTicket(account_data) => {
+            process_player_initialization(program_id, accounts, account_data)
         }
         LotoInstruction::CloseAccount => Err(LotteryError::NotImplemented.into()),
-        LotoInstruction::PurchaseTicket { ticket: _ } => Err(LotteryError::NotImplemented.into()),
-        LotoInstruction::SelectWinners(_winners) => Err(LotteryError::NotImplemented.into()),
+        LotoInstruction::SelectWinnersAndAirdrop() => Err(LotteryError::NotImplemented.into()),
     }
 }
 
-fn process_initialization(
+fn process_pool_initialization(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let mut accounts = accounts.into_iter();
+    let payer = next_account_info(&mut accounts)?;
+    let pool_pda_account = next_account_info(&mut accounts)?;
+    let system_program_account = next_account_info(&mut accounts)?;
+    let (vault, bump) = Pubkey::find_program_address(&[b"pool"], program_id);
+
+    let rent = Rent::get()?;
+    let account_size = std::mem::size_of::<PoolAccount>();
+    if !rent.is_exempt(payer.lamports(), std::mem::size_of::<PoolAccount>()) {
+        return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
+    }
+
+    let ballance = rent.minimum_balance(account_size);
+
+    let instr = system_instruction::create_account(
+        program_id,
+        &vault,
+        ballance,
+        account_size as u64,
+        program_id,
+    );
+
+    invoke_signed(
+        &instr,
+        &[
+            payer.clone(),
+            pool_pda_account.clone(),
+            system_program_account.clone(),
+        ],
+        &[&[b"pool", &[bump]]],
+    )?;
+    // @todo: process account creation and initialization afterwards.
+
+    Ok(())
+}
+
+fn process_player_initialization(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     account_data: TicketAccountData,

@@ -3,9 +3,9 @@ use solana_program::pubkey::Pubkey;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
 pub enum LotoInstruction {
-    Initialize(TicketAccountData),
-    PurchaseTicket { ticket: TicketAccountData },
-    SelectWinners(TicketAccountData),
+    InitializePool,
+    PurchaseTicket(TicketAccountData),
+    SelectWinnersAndAirdrop(),
     CloseAccount,
 }
 
@@ -19,5 +19,5 @@ pub struct TicketAccountData {
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct PoolAccount {
-    pub lamports: u64,
+    pub referee: Pubkey,
 }

@@ -3,7 +3,8 @@ use solana_program::pubkey::Pubkey;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
 pub enum LotoInstruction {
-    InitializePool,
+    InitializePool(u64),
+    Deposit(u64),
     PurchaseTicket(TicketAccountData),
     SelectWinnersAndAirdrop(),
     ClosePlayerAccount,

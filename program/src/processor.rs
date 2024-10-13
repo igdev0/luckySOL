@@ -20,7 +20,10 @@ pub fn processor(
 ) -> ProgramResult {
     let instr = LotoInstruction::try_from_slice(instruction_data)?;
     match instr {
-        LotoInstruction::InitializePool => process_pool_initialization(program_id, accounts),
+        LotoInstruction::InitializePool(amount) => {
+            process_pool_initialization(program_id, accounts, amount)
+        }
+        LotoInstruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
         LotoInstruction::PurchaseTicket(account_data) => {
             process_player_initialization(program_id, accounts, account_data)
         }
@@ -29,7 +32,18 @@ pub fn processor(
     }
 }
 
-fn process_pool_initialization(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
+    let mut accounts = accounts.into_iter();
+    let payer = next_account_info(&mut accounts)?;
+
+    Ok(())
+}
+
+fn process_pool_initialization(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    amount: u64,
+) -> ProgramResult {
     let mut accounts = accounts.into_iter();
     let payer = next_account_info(&mut accounts)?;
     let pool_pda_account = next_account_info(&mut accounts)?;
@@ -38,16 +52,17 @@ fn process_pool_initialization(program_id: &Pubkey, accounts: &[AccountInfo]) ->
 
     let rent = Rent::get()?;
     let account_size = std::mem::size_of::<PoolAccount>();
-    if !rent.is_exempt(payer.lamports(), std::mem::size_of::<PoolAccount>()) {
+
+    let exempt_balance = rent.minimum_balance(account_size);
+
+    if payer.lamports() < (exempt_balance + amount) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
-
-    let ballance = rent.minimum_balance(account_size);
 
     let instr = system_instruction::create_account(
         program_id,
         &vault,
-        ballance,
+        exempt_balance + amount,
         account_size as u64,
         program_id,
     );
@@ -61,7 +76,6 @@ fn process_pool_initialization(program_id: &Pubkey, accounts: &[AccountInfo]) ->
         ],
         &[&[b"pool", &[bump]]],
     )?;
-    // @todo: process account creation and initialization afterwards.
 
     Ok(())
 }

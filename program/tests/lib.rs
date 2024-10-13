@@ -44,7 +44,7 @@ async fn initialize_player_account() {
         .ok_or("There was some error while processing merkle root")
         .expect("Wasn't able to get the root of the merkle tree");
 
-    let instruction_data = LotoInstruction::Initialize(TicketAccountData {
+    let instruction_data = LotoInstruction::PurchaseTicket(TicketAccountData {
         address: player_key.pubkey(),
         merkle_root,
     });

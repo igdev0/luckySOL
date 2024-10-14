@@ -1,17 +1,20 @@
 use crate::{
     error::LotteryError,
-    state::{LotoInstruction, PoolAccount, TicketAccountData},
+    state::{LotoInstruction, PoolAccount, PoolStorageSeed, TicketAccountData},
 };
 use borsh::{to_vec, BorshDeserialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    program::invoke,
     program::invoke_signed,
     pubkey::Pubkey,
     rent::Rent,
     system_instruction,
     sysvar::Sysvar,
 };
+
+pub const STAKE_POOL_MINIMUM_AMOUNT: u32 = 100_000_000;
 
 pub fn processor(
     program_id: &Pubkey,
@@ -35,6 +38,16 @@ pub fn processor(
 fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let mut accounts = accounts.into_iter();
     let payer = next_account_info(&mut accounts)?;
+    let pool_vault = next_account_info(&mut accounts)?;
+    let _system_program_account = next_account_info(&mut accounts)?;
+
+    if pool_vault.owner != program_id {
+        return Err(solana_program::program_error::ProgramError::IllegalOwner);
+    }
+
+    let instr = system_instruction::transfer(payer.key, pool_vault.key, amount);
+
+    invoke(&instr, &[payer.clone(), pool_vault.clone()])?;
 
     Ok(())
 }
@@ -45,10 +58,12 @@ fn process_pool_initialization(
     amount: u64,
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
+
     let payer = next_account_info(&mut accounts)?;
     let pool_pda_account = next_account_info(&mut accounts)?;
     let system_program_account = next_account_info(&mut accounts)?;
-    let (vault, bump) = Pubkey::find_program_address(&[b"pool"], program_id);
+    let (vault, bump) =
+        Pubkey::find_program_address(&[PoolStorageSeed::StakePool.as_bytes()], program_id);
 
     let rent = Rent::get()?;
     let account_size = std::mem::size_of::<PoolAccount>();

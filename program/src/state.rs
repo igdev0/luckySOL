@@ -29,14 +29,14 @@ pub struct PoolAccount {
     // The user account wich has the authority to move funds from StakeAccount
     // for now, this is a simple account, in the near future it will be managed by comunity votes
     pub stake_house_authority: Pubkey,
-    // The user which has the authority to move funds from FeesAccount
-    pub fees_pool_authority: Pubkey,
+    // // The user which has the authority to move funds from FeesAccount
+    // pub fees_pool_authority: Pubkey,
 }
 
 pub enum PoolStorageSeed {
     StakePool,
     StakeHouse,
-    FeesPool,
+    // FeesPool,
 }
 
 impl PoolStorageSeed {
@@ -44,7 +44,7 @@ impl PoolStorageSeed {
         match self {
             PoolStorageSeed::StakePool => "StakePool".as_bytes(),
             PoolStorageSeed::StakeHouse => "StakeHouse".as_bytes(),
-            PoolStorageSeed::FeesPool => "FeesPool".as_bytes(),
+            // PoolStorageSeed::FeesPool => "FeesPool".as_bytes(),
         }
     }
 }

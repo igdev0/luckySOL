@@ -163,8 +163,7 @@ fn process_player_initialization(
     let (pda, bump_seed) = Pubkey::find_program_address(seeds, program_id);
 
     let lamports = rent.minimum_balance(space);
-    // spl_token::instruction::initialize_account(token_program_id, account_pubkey, mint_pubkey, owner_pubkey);
-    // spl_token::check_program_account(spl_token_program_id)
+
     let instruction =
         system_instruction::create_account(&payer.key, &pda, lamports, space as u64, program_id);
 

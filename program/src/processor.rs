@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::{
     error::LotteryError,
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
@@ -77,6 +79,8 @@ fn process_pool_initialization(
 
     let system_program_account = next_account_info(&mut accounts)?;
 
+    // let spl_program_id = next_account_info(&mut accounts)?;
+
     let (pool_vault_addr, bump) =
         Pubkey::find_program_address(&[PoolStorageSeed::StakePool.as_bytes()], program_id);
 
@@ -133,6 +137,8 @@ fn process_player_initialization(
     let payer = next_account_info(&mut accounts)?;
     // Account PDA for payer
     let vault_pda = next_account_info(&mut accounts)?;
+    // Stake pool vault
+    let stake_pool_vault = next_account_info(&mut accounts)?;
     // Rent exempt check
     let rent = Rent::get()?;
     let space = std::mem::size_of::<TicketAccountData>();
@@ -149,11 +155,16 @@ fn process_player_initialization(
         return Err(solana_program::program_error::ProgramError::AccountAlreadyInitialized);
     }
 
+    if stake_pool_vault.data_is_empty() {
+        return Err(solana_program::program_error::ProgramError::UninitializedAccount);
+    }
+
     let seeds = &[payer.key.as_ref()];
     let (pda, bump_seed) = Pubkey::find_program_address(seeds, program_id);
 
     let lamports = rent.minimum_balance(space);
-
+    // spl_token::instruction::initialize_account(token_program_id, account_pubkey, mint_pubkey, owner_pubkey);
+    // spl_token::check_program_account(spl_token_program_id)
     let instruction =
         system_instruction::create_account(&payer.key, &pda, lamports, space as u64, program_id);
 
@@ -162,6 +173,23 @@ fn process_player_initialization(
         &[payer.clone(), vault_pda.clone()],
         &[&[payer.key.as_ref(), &[bump_seed]]],
     )?;
+
+    let stake_pool_vault_data = stake_pool_vault.try_borrow_data()?;
+    let stake_pool_vault_data = PoolStorageAccount::try_from_slice(&stake_pool_vault_data)?;
+
+    let token_account_instruction = spl_token::instruction::initialize_account(
+        &spl_token::ID,
+        &payer.key,
+        &stake_pool_vault_data.receipt_mint,
+        &pda,
+    )?;
+
+    invoke_signed(
+        &token_account_instruction,
+        &[payer.clone()],
+        &[&[payer.key.as_ref(), &[bump_seed]]],
+    )?;
+
     let serialized_data = to_vec(&account_data).unwrap();
 
     vault_pda.try_borrow_mut_data()?[..serialized_data.len()].copy_from_slice(&serialized_data);

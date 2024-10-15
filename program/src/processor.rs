@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use crate::{
     error::LotteryError,
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},

@@ -1,8 +1,8 @@
 use crate::{
     error::LotteryError,
-    state::{LotoInstruction, PoolAccount, PoolStorageSeed, TicketAccountData},
+    state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
 };
-use borsh::{to_vec, BorshDeserialize};
+use borsh::{to_vec, BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -59,39 +59,67 @@ fn process_pool_initialization(
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
 
-    let payer = next_account_info(&mut accounts)?;
-    let pool_pda_account = next_account_info(&mut accounts)?;
+    // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
+    let stake_pool_authority = next_account_info(&mut accounts)?;
+
+    // The PDA vault of the stake pool
+    let stake_pool_vault = next_account_info(&mut accounts)?;
+
+    // This is the actual receipt mint address
+    let receipt_mint = next_account_info(&mut accounts)?;
+
+    // We will use the mint authority to create new tokens as user purchases tickets.
+    // 1 receipt token per ticket
+    let receipt_mint_authority = next_account_info(&mut accounts)?;
+
+    // We will need receipt mint owner when the user decides to close acccount.
+    let receipt_mint_owner = next_account_info(&mut accounts)?;
+
     let system_program_account = next_account_info(&mut accounts)?;
-    let (vault, bump) =
+
+    let (pool_vault_addr, bump) =
         Pubkey::find_program_address(&[PoolStorageSeed::StakePool.as_bytes()], program_id);
 
     let rent = Rent::get()?;
-    let account_size = std::mem::size_of::<PoolAccount>();
+    let account_size = std::mem::size_of::<PoolStorageAccount>();
 
     let exempt_balance = rent.minimum_balance(account_size);
 
-    if payer.lamports() < (exempt_balance + amount) {
+    if stake_pool_authority.lamports() < (exempt_balance + amount) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
 
-    let instr = system_instruction::create_account(
+    // Initialize stake pool account
+    let stake_pool_instr = system_instruction::create_account(
         program_id,
-        &vault,
+        &pool_vault_addr,
         exempt_balance + amount,
         account_size as u64,
         program_id,
     );
 
     invoke_signed(
-        &instr,
+        &stake_pool_instr,
         &[
-            payer.clone(),
-            pool_pda_account.clone(),
+            stake_pool_authority.clone(),
+            stake_pool_vault.clone(),
             system_program_account.clone(),
         ],
-        &[&[b"pool", &[bump]]],
+        &[&[PoolStorageSeed::StakePool.as_bytes(), &[bump]]],
     )?;
 
+    // Init the storage account for the stake pool
+
+    let mut stake_pool_data = stake_pool_vault.try_borrow_mut_data()?;
+
+    let data = PoolStorageAccount {
+        receipt_mint: receipt_mint.key.clone(),
+        receipt_mint_authority: receipt_mint_authority.key.clone(),
+        receipt_mint_owner: receipt_mint_owner.key.clone(),
+        stake_pool_authority: stake_pool_authority.key.clone(),
+    };
+
+    data.serialize(&mut *stake_pool_data)?;
     Ok(())
 }
 

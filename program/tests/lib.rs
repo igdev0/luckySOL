@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
 use solana_lottery_program::{
@@ -16,11 +18,34 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
+const RECEIPT_MINT: &str = "2WbTFMaLWnBkW8rSdZEGpFuqMncYUHhwJHjuiwvKupAg";
+const RECEIPT_MINT_AUTHORITY: &str = "CTQYF649hi9V5D3urRtRh1hqiT4efddmJVnqhGxn32wb";
+
+#[tokio::test]
+async fn initialize_pool() {
+    let program_id = Pubkey::new_unique();
+    let pool_authority = Keypair::new();
+
+    let mut program_test = ProgramTest::new(
+        "solana_lottery_program",
+        program_id,
+        processor!(lottery_processor),
+    );
+
+    program_test.add_account(
+        pool_authority.pubkey(),
+        Account::new(100_000_000, 0, &program_id),
+    );
+    program_test.start().await;
+}
+
 #[tokio::test]
 async fn initialize_player_account() {
     let program_id = Pubkey::new_unique();
     let player_key = Keypair::new();
-
+    let token_mint = Pubkey::from_str(RECEIPT_MINT).expect("unable to parse mint");
+    let token_mint_authority =
+        Pubkey::from_str(RECEIPT_MINT_AUTHORITY).expect("Unable to parse mint authority");
     let mut program_test = ProgramTest::new(
         "solana_lottery_program",
         program_id,

@@ -14,16 +14,22 @@ fn main() {
 
     // Prove these two leafes exist on the merkle tree
     let indices_to_prove = vec![3, 4];
-    let leaves_to_prove = leaves.get(3..5).ok_or("can't get leaves to prove").unwrap();
+    
+    let leaves_to_prove = leaves
+        .get(3..=4)
+        .ok_or("can't get leaves to prove")
+        .unwrap();
     let merkle_proof = merkle_tree.proof(&indices_to_prove);
     let merkle_root = merkle_tree
         .root()
         .ok_or("couldn't get the merkle root")
         .unwrap();
+
     // Serialize proof to pass it to the client
     let proof_bytes = merkle_proof.to_bytes();
 
     // Parse proof back on the client
+
     let proof = MerkleProof::<Sha256>::try_from(proof_bytes).unwrap();
     let verification_result = proof.verify(
         merkle_root,

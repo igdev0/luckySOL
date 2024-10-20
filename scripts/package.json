@@ -1,0 +1,11 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "main": "create-metadata.js",
+  "scripts": {
+    "start": "node start"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

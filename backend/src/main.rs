@@ -1,3 +1,4 @@
+use bs58;
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleProof, MerkleTree};
 
 fn main() {
@@ -14,7 +15,7 @@ fn main() {
 
     // Prove these two leafes exist on the merkle tree
     let indices_to_prove = vec![3, 4];
-    
+
     let leaves_to_prove = leaves
         .get(3..=4)
         .ok_or("can't get leaves to prove")
@@ -38,4 +39,9 @@ fn main() {
         leaves.len(),
     );
     assert!(verification_result);
+
+    let decoded = bs58::decode(
+        "5Y42q1jYkGcuv2saPyekzQGqaWkKgbRS3QuXAEuCe3pFQwcdxaxBejXZsojzbjUbbbZ5YzJLSmGhHE4YL9YWz6KP",
+    );
+    dbg!(decoded.into_vec().unwrap().len());
 }

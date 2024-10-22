@@ -91,7 +91,7 @@ fn process_pool_initialization(
     if stake_pool_authority.lamports() < (exempt_balance + amount) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
-    msg!("Initialize stake pool account");
+
     // Initialize stake pool account
     let stake_pool_instr = system_instruction::create_account(
         &stake_pool_authority.key,
@@ -117,8 +117,6 @@ fn process_pool_initialization(
 
     // Init the storage account for the stake pool
 
-    msg!("Initialize stake pool storage account");
-
     let mut stake_pool_data = stake_pool_vault.try_borrow_mut_data()?;
 
     let data = PoolStorageAccount {
@@ -138,7 +136,7 @@ fn process_player_initialization(
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
     // Account payer
-    let payer = next_account_info(&mut accounts)?;
+    let player = next_account_info(&mut accounts)?;
     // Account PDA for payer
     let vault_pda = next_account_info(&mut accounts)?;
     // Stake pool vault
@@ -147,11 +145,11 @@ fn process_player_initialization(
     let rent = Rent::get()?;
     let space = std::mem::size_of::<TicketAccountData>();
 
-    if !rent.is_exempt(payer.lamports(), space) {
+    if !rent.is_exempt(player.lamports(), space) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
 
-    if !payer.is_signer {
+    if !player.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
 
@@ -163,18 +161,18 @@ fn process_player_initialization(
         return Err(solana_program::program_error::ProgramError::UninitializedAccount);
     }
 
-    let seeds = &[payer.key.as_ref()];
+    let seeds = &[player.key.as_ref()];
     let (pda, bump_seed) = Pubkey::find_program_address(seeds, program_id);
 
     let lamports = rent.minimum_balance(space);
 
     let instruction =
-        system_instruction::create_account(&payer.key, &pda, lamports, space as u64, program_id);
+        system_instruction::create_account(&player.key, &pda, lamports, space as u64, program_id);
 
     invoke_signed(
         &instruction,
-        &[payer.clone(), vault_pda.clone()],
-        &[&[payer.key.as_ref(), &[bump_seed]]],
+        &[player.clone(), vault_pda.clone()],
+        &[&[player.key.as_ref(), &[bump_seed]]],
     )?;
 
     let stake_pool_vault_data = stake_pool_vault.try_borrow_data()?;
@@ -182,15 +180,15 @@ fn process_player_initialization(
 
     let token_account_instruction = spl_token::instruction::initialize_account(
         &spl_token::ID,
-        &payer.key,
+        &player.key,
         &stake_pool_vault_data.receipt_mint,
         &pda,
     )?;
 
     invoke_signed(
         &token_account_instruction,
-        &[payer.clone()],
-        &[&[payer.key.as_ref(), &[bump_seed]]],
+        &[player.clone()],
+        &[&[player.key.as_ref(), &[bump_seed]]],
     )?;
 
     let serialized_data = to_vec(&account_data).unwrap();

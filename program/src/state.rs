@@ -25,8 +25,6 @@ pub struct PoolStorageAccount {
     // The recipe token, used to send back a recipe depending on the amount of tickets bought, 1 token per ticket.
     pub receipt_mint: Pubkey,
     // The user owning the recipe token.
-    pub receipt_mint_owner: Pubkey,
-    // The user owning the recipe token.
     pub receipt_mint_authority: Pubkey,
     // pub fees_pool_authority: Pubkey,
 }

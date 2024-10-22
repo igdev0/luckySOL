@@ -71,9 +71,6 @@ fn process_pool_initialization(
     // The receipt mint authority is the authority which can mint new receipt tokens.
     let receipt_mint_authority = next_account_info(&mut accounts)?;
 
-    // The receipt mint owner is the owner of the receipt mint.
-    let receipt_mint_owner = next_account_info(&mut accounts)?;
-
     // The system program account
     let system_program_account = next_account_info(&mut accounts)?;
 
@@ -115,7 +112,6 @@ fn process_pool_initialization(
     let data = PoolStorageAccount {
         receipt_mint: receipt_mint.key.clone(),
         receipt_mint_authority: receipt_mint_authority.key.clone(),
-        receipt_mint_owner: receipt_mint_owner.key.clone(),
         stake_pool_authority: stake_pool_authority.key.clone(),
     };
 

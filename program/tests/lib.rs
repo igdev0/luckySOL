@@ -23,7 +23,6 @@ const RECEIPT_MINT_AUTHORITY: &str = "68HumYhXUHYoUXtzbXbv6FQ9WcMMQmESJCr1zw27a9
 #[tokio::test]
 async fn initialize_pool() {
     let program_id = Pubkey::new_unique();
-    // let pool_authority = Keypair::new();
 
     let mut program_test = ProgramTest::new(
         "solana_lottery_program",
@@ -31,10 +30,6 @@ async fn initialize_pool() {
         processor!(lottery_processor),
     );
 
-    // program_test.add_account(
-    //     pool_authority.pubkey(),
-    //     Account::new(200_000_000, 0, &program_id),
-    // );
     let (mut client, pool_authority, recent_blockhash) = program_test.start().await;
 
     let acc = client.get_account(pool_authority.pubkey()).await.unwrap();

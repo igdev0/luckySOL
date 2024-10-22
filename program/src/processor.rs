@@ -62,22 +62,20 @@ fn process_pool_initialization(
     // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
     let stake_pool_authority = next_account_info(&mut accounts)?;
 
-    // The PDA vault of the stake pool
+    // The PDA vault of the stake pool which will be used to store the tickets.
     let stake_pool_vault = next_account_info(&mut accounts)?;
 
-    // This is the actual receipt mint address
+    // The receipt mint is the mint which will be used to create new tokens as users purchase tickets.
     let receipt_mint = next_account_info(&mut accounts)?;
 
-    // We will use the mint authority to create new tokens as user purchases tickets.
-    // 1 receipt token per ticket
+    // The receipt mint authority is the authority which can mint new receipt tokens.
     let receipt_mint_authority = next_account_info(&mut accounts)?;
 
-    // We will need receipt mint owner when the user decides to close acccount.
+    // The receipt mint owner is the owner of the receipt mint.
     let receipt_mint_owner = next_account_info(&mut accounts)?;
 
+    // The system program account
     let system_program_account = next_account_info(&mut accounts)?;
-
-    // let spl_program_id = next_account_info(&mut accounts)?;
 
     let (pool_vault_addr, bump) =
         Pubkey::find_program_address(&[PoolStorageSeed::StakePool.as_bytes()], program_id);

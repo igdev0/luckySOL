@@ -3,6 +3,7 @@ use crate::{
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
 };
 use borsh::{to_vec, BorshDeserialize, BorshSerialize};
+use solana_program::msg;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -74,8 +75,13 @@ fn process_pool_initialization(
     // The system program account
     let system_program_account = next_account_info(&mut accounts)?;
 
-    let (pool_vault_addr, bump) =
-        Pubkey::find_program_address(&[PoolStorageSeed::StakePool.as_bytes()], program_id);
+    let (pool_vault_addr, bump) = Pubkey::find_program_address(
+        &[
+            PoolStorageSeed::StakePool.as_bytes(),
+            stake_pool_authority.key.as_ref(),
+        ],
+        program_id,
+    );
 
     let rent = Rent::get()?;
     let account_size = std::mem::size_of::<PoolStorageAccount>();
@@ -85,10 +91,10 @@ fn process_pool_initialization(
     if stake_pool_authority.lamports() < (exempt_balance + amount) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
-
+    msg!("Initialize stake pool account");
     // Initialize stake pool account
     let stake_pool_instr = system_instruction::create_account(
-        program_id,
+        &stake_pool_authority.key,
         &pool_vault_addr,
         exempt_balance + amount,
         account_size as u64,
@@ -102,10 +108,16 @@ fn process_pool_initialization(
             stake_pool_vault.clone(),
             system_program_account.clone(),
         ],
-        &[&[PoolStorageSeed::StakePool.as_bytes(), &[bump]]],
+        &[&[
+            PoolStorageSeed::StakePool.as_bytes(),
+            &stake_pool_authority.key.as_ref(),
+            &[bump],
+        ]],
     )?;
 
     // Init the storage account for the stake pool
+
+    msg!("Initialize stake pool storage account");
 
     let mut stake_pool_data = stake_pool_vault.try_borrow_mut_data()?;
 

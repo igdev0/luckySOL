@@ -3,7 +3,7 @@ use crate::{
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
 };
 use borsh::{to_vec, BorshDeserialize, BorshSerialize};
-use solana_program::msg;
+
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -14,6 +14,9 @@ use solana_program::{
     system_instruction,
     sysvar::Sysvar,
 };
+
+const DEVELOPMENT_CUT: f64 = 0.2;
+const TICKET_PRICE: u64 = 50_000_000; // 0.05 SOL
 
 pub const STAKE_POOL_MINIMUM_AMOUNT: u32 = 100_000_000;
 
@@ -125,10 +128,16 @@ fn process_pool_initialization(
         stake_pool_authority: stake_pool_authority.key.clone(),
     };
 
+    // let spl_instruction = spl_token_2022::instruction::set_authority(&spl_token_2022::ID, owned_pubkey, new_authority_pubkey, authority_type, owner_pubkey, signer_pubkeys)?;
+
     data.serialize(&mut *stake_pool_data)?;
     Ok(())
 }
 
+/// Process the player initialization
+/// This function will create a new account for the player and transfer the ticket price to the stake pool vault.
+/// The player account will be initialized with the ticket data.
+/// The player account will be owned by the program.
 fn process_player_initialization(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -144,7 +153,6 @@ fn process_player_initialization(
     // Rent exempt check
     let rent = Rent::get()?;
     let space = std::mem::size_of::<TicketAccountData>();
-
     if !rent.is_exempt(player.lamports(), space) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
@@ -178,11 +186,20 @@ fn process_player_initialization(
     let stake_pool_vault_data = stake_pool_vault.try_borrow_data()?;
     let stake_pool_vault_data = PoolStorageAccount::try_from_slice(&stake_pool_vault_data)?;
 
-    let token_account_instruction = spl_token::instruction::initialize_account(
-        &spl_token::ID,
+    let token_account_instruction = spl_token_2022::instruction::initialize_account(
+        &spl_token_2022::ID,
         &player.key,
         &stake_pool_vault_data.receipt_mint,
         &pda,
+    )?;
+
+    let ticket_purchase_instr =
+        system_instruction::transfer(player.key, stake_pool_vault.key, TICKET_PRICE);
+
+    invoke_signed(
+        &ticket_purchase_instr,
+        &[player.clone(), stake_pool_vault.clone()],
+        &[&[player.key.as_ref(), &[bump_seed]]],
     )?;
 
     invoke_signed(
@@ -190,6 +207,19 @@ fn process_player_initialization(
         &[player.clone()],
         &[&[player.key.as_ref(), &[bump_seed]]],
     )?;
+
+    // Now send recipe token back to the player
+
+    let token_transfer_instruction = spl_token_2022::instruction::mint_to(
+        &spl_token_2022::ID,
+        &stake_pool_vault_data.receipt_mint,
+        &pda,
+        &player.key,
+        &[],
+        1,
+    )?;
+
+    // Serialize the account data and store it in the account
 
     let serialized_data = to_vec(&account_data).unwrap();
 

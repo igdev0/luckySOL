@@ -16,13 +16,14 @@ use solana_sdk::{
     sysvar::{self},
     transaction::Transaction,
 };
-
+// TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
 const RECEIPT_MINT: &str = "Au4Ltjubh7rSdbGqKoaPsAno6aSmggaqwBwHRP2jJEFD";
-const RECEIPT_MINT_AUTHORITY: &str = "68HumYhXUHYoUXtzbXbv6FQ9WcMMQmESJCr1zw27a9xn";
+const RECEIPT_MINT_AUTHORITY: &str = "1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA";
+const PROGRAM_ID: Pubkey = solana_lottery_program::ID;
 
 #[tokio::test]
 async fn initialize_pool() {
-    let program_id = Pubkey::new_unique();
+    let program_id = PROGRAM_ID;
 
     let mut program_test = ProgramTest::new(
         "solana_lottery_program",
@@ -34,9 +35,7 @@ async fn initialize_pool() {
 
     let acc = client.get_account(pool_authority.pubkey()).await.unwrap();
 
-    dbg!(acc);
     let receipt_mint = Pubkey::from_str(&RECEIPT_MINT).unwrap();
-    let receipt_mint_authority = Pubkey::from_str(&RECEIPT_MINT_AUTHORITY).unwrap();
     let (pool_storage_account_address, _bump) = Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
@@ -51,7 +50,6 @@ async fn initialize_pool() {
         AccountMeta::new_readonly(pool_authority.pubkey(), true),
         AccountMeta::new(pool_storage_account_address, false),
         AccountMeta::new_readonly(receipt_mint, false),
-        AccountMeta::new_readonly(receipt_mint_authority, false),
         AccountMeta::new_readonly(system_program::ID, false),
     ];
 

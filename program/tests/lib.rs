@@ -1,16 +1,14 @@
 mod helpers;
-use helpers::init_receipt_token;
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 use std::str::FromStr;
 
-use solana_lottery_program::state::{LotoInstruction, PoolStorageSeed, TicketAccountData};
+use solana_lottery_program::state::{LotoInstruction, PoolStorageSeed};
 use solana_program_test::*;
 use solana_sdk::{
-    account::Account,
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
     signature::Keypair,
-    signer::{EncodableKey, Signer},
+    signer::Signer,
     system_program,
     sysvar::{self},
     transaction::Transaction,
@@ -24,10 +22,6 @@ async fn initialize_pool() {
     let program_id: Pubkey = PROGRAM_ID;
     let (mut client, pool_authority, recent_blockhash) = helpers::setup().await;
 
-    // let token = init_receipt_token(&mut client, &pool_authority, recent_blockhash)
-    //     .await
-    //     .unwrap();
-    // dbg!(token);
     let receipt_mint = Keypair::new();
     let (pool_storage_account_address, _bump) = Pubkey::find_program_address(
         &[

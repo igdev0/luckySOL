@@ -89,6 +89,10 @@ fn process_pool_initialization(
         program_id,
     );
 
+    if &pool_vault_addr != stake_pool_vault.key {
+        return Err(LotteryError::InvalidStakePoolVault.into());
+    }
+
     let rent = Rent::get()?;
     let account_size = std::mem::size_of::<PoolStorageAccount>();
 

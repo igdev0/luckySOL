@@ -1,3 +1,4 @@
+use borsh::error;
 use solana_program::program_error::ProgramError;
 use thiserror::Error;
 
@@ -7,6 +8,8 @@ pub enum LotteryError {
     IncorrectOwner,
     #[error("Not implemented yet.")]
     NotImplemented,
+    #[error("Invalid InvalidStakePoolVault")]
+    InvalidStakePoolVault,
 }
 
 impl From<LotteryError> for ProgramError {

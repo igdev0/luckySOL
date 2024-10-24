@@ -20,5 +20,6 @@ name = "solana_lottery_program"
 crate-type = ["cdylib", "lib"]
 
 [dev-dependencies]
+solana-logger = "2.0.14"
 solana-program-test = "2.0.13"
 solana-sdk = "2.0.13"

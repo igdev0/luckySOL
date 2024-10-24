@@ -2,11 +2,13 @@ use crate::{
     error::LotteryError,
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
 };
+
 use borsh::{to_vec, BorshDeserialize, BorshSerialize};
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    msg,
     program::invoke,
     program::invoke_signed,
     pubkey::Pubkey,
@@ -14,6 +16,8 @@ use solana_program::{
     system_instruction,
     sysvar::Sysvar,
 };
+
+use solana_program::program_pack::Pack;
 
 const DEVELOPMENT_CUT: f64 = 0.2;
 const TICKET_PRICE: u64 = 50_000_000; // 0.05 SOL
@@ -64,7 +68,7 @@ fn process_pool_initialization(
     let mut accounts = accounts.into_iter();
 
     // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
-    let stake_pool_authority = next_account_info(&mut accounts)?;
+    let pool_authority = next_account_info(&mut accounts)?;
 
     // The PDA vault of the stake pool which will be used to store the tickets.
     let stake_pool_vault = next_account_info(&mut accounts)?;
@@ -72,16 +76,15 @@ fn process_pool_initialization(
     // The receipt mint is the mint which will be used to create new tokens as users purchase tickets.
     let receipt_mint = next_account_info(&mut accounts)?;
 
-    // The receipt mint authority is the authority which can mint new receipt tokens.
-    let receipt_mint_authority = next_account_info(&mut accounts)?;
-
     // The system program account
-    let system_program_account = next_account_info(&mut accounts)?;
+    let _system_program_account = next_account_info(&mut accounts)?;
+    let rent_account = next_account_info(&mut accounts)?;
+    let spl_token_2022_account = next_account_info(&mut accounts)?;
 
     let (pool_vault_addr, bump) = Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
-            stake_pool_authority.key.as_ref(),
+            pool_authority.key.as_ref(),
         ],
         program_id,
     );
@@ -91,41 +94,59 @@ fn process_pool_initialization(
 
     let exempt_balance = rent.minimum_balance(account_size);
 
-    if stake_pool_authority.lamports() < (exempt_balance + amount) {
+    if pool_authority.lamports() < (exempt_balance + amount) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
 
+    let token_account_exempt_balance = rent.minimum_balance(spl_token_2022::state::Mint::LEN);
     // Initialize stake pool account
-    let stake_pool_instr = system_instruction::create_account(
-        &stake_pool_authority.key,
-        &pool_vault_addr,
-        exempt_balance + amount,
-        account_size as u64,
-        program_id,
+    let token_account_instr = system_instruction::create_account(
+        &pool_authority.key,
+        &stake_pool_vault.key,
+        token_account_exempt_balance,
+        spl_token_2022::state::Mint::LEN as u64,
+        &spl_token_2022::ID,
     );
 
     invoke_signed(
-        &stake_pool_instr,
-        &[
-            stake_pool_authority.clone(),
-            stake_pool_vault.clone(),
-            system_program_account.clone(),
-        ],
+        &token_account_instr,
+        &[pool_authority.clone(), stake_pool_vault.clone()],
         &[&[
             PoolStorageSeed::StakePool.as_bytes(),
-            &stake_pool_authority.key.as_ref(),
+            &pool_authority.key.as_ref(),
             &[bump],
         ]],
     )?;
 
-    // Init the storage account for the stake pool
+    let token_init_instruction = spl_token_2022::instruction::initialize_mint(
+        &spl_token_2022::ID,
+        &stake_pool_vault.key,
+        &stake_pool_vault.key,
+        None,
+        0,
+    )?;
+
+    msg!("Creating SPL 2022 mint");
+    invoke_signed(
+        &token_init_instruction,
+        &[
+            pool_authority.clone(),
+            receipt_mint.clone(),
+            stake_pool_vault.clone(),
+            spl_token_2022_account.clone(),
+            rent_account.clone(),
+        ],
+        &[&[
+            PoolStorageSeed::StakePool.as_bytes(),
+            &pool_authority.key.as_ref(),
+            &[bump],
+        ]],
+    )?;
 
     let mut stake_pool_data = stake_pool_vault.try_borrow_mut_data()?;
 
     let data = PoolStorageAccount {
         receipt_mint: receipt_mint.key.clone(),
-        receipt_mint_authority: receipt_mint_authority.key.clone(),
-        stake_pool_authority: stake_pool_authority.key.clone(),
     };
 
     // let spl_instruction = spl_token_2022::instruction::set_authority(&spl_token_2022::ID, owned_pubkey, new_authority_pubkey, authority_type, owner_pubkey, signer_pubkeys)?;

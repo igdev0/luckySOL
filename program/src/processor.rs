@@ -60,32 +60,20 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     Ok(())
 }
 
-fn process_pool_initialization(
+fn initialize_pool_mint<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    pool_authority_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
+    mint_authority_account: &AccountInfo<'a>,
+    rent_account: &AccountInfo<'a>,
+    system_program_account: &AccountInfo<'a>,
+    spl_token_2022_account: &AccountInfo<'a>,
     amount: u64,
 ) -> ProgramResult {
-    let mut accounts = accounts.into_iter();
-
-    // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
-    let pool_authority = next_account_info(&mut accounts)?;
-
-    // The PDA vault of the stake pool which will be used to store the tickets.
-    let mint_account = next_account_info(&mut accounts)?;
-
-    // The rent account
-    let rent_account = next_account_info(&mut accounts)?;
-
-    // The spl_token_2022 account
-    let spl_token_2022_account = next_account_info(&mut accounts)?;
-
-    // The system account
-    let _system_program_account = next_account_info(&mut accounts)?;
-
     let (pool_mint_address, bump) = Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
-            pool_authority.key.as_ref(),
+            pool_authority_account.key.as_ref(),
         ],
         program_id,
     );
@@ -93,29 +81,29 @@ fn process_pool_initialization(
     if &pool_mint_address != mint_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
-
     let rent = Rent::get()?;
 
     let exempt_balance = rent.minimum_balance(spl_token_2022::state::Mint::LEN);
 
-    if pool_authority.lamports() < (exempt_balance + amount) {
+    if pool_authority_account.lamports() < (exempt_balance + amount) {
         return Err(LotteryError::InsufficientFunds.into());
     }
 
-    let mint_account_instr = system_instruction::create_account(
-        &pool_authority.key,
-        &mint_account.key,
-        exempt_balance + amount,
-        spl_token_2022::state::Mint::LEN as u64,
-        &spl_token_2022::ID,
-    );
+    let mint_account_instr: solana_program::instruction::Instruction =
+        system_instruction::create_account(
+            &pool_authority_account.key,
+            &mint_account.key,
+            exempt_balance + amount,
+            spl_token_2022::state::Mint::LEN as u64,
+            &spl_token_2022::ID,
+        );
 
     invoke_signed(
         &mint_account_instr,
-        &[pool_authority.clone(), mint_account.clone()],
+        &[pool_authority_account.clone(), mint_account.clone()],
         &[&[
             PoolStorageSeed::StakePool.as_bytes(),
-            &pool_authority.key.as_ref(),
+            &pool_authority_account.key.as_ref(),
             &[bump],
         ]],
     )?;
@@ -131,18 +119,53 @@ fn process_pool_initialization(
     invoke_signed(
         &token_init_instruction,
         &[
-            pool_authority.clone(),
+            pool_authority_account.clone(),
             mint_account.clone(),
             spl_token_2022_account.clone(),
             rent_account.clone(),
         ],
         &[&[
             PoolStorageSeed::StakePool.as_bytes(),
-            &pool_authority.key.as_ref(),
+            &pool_authority_account.key.as_ref(),
             &[bump],
         ]],
     )?;
 
+    Ok(())
+}
+
+fn process_pool_initialization(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    amount: u64,
+) -> ProgramResult {
+    let mut accounts = accounts.into_iter();
+
+    // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
+    let pool_authority_account = next_account_info(&mut accounts)?;
+
+    // The PDA vault of the stake pool which will be used to store the tickets.
+    let mint_account = next_account_info(&mut accounts)?;
+
+    // The rent account
+    let rent_account = next_account_info(&mut accounts)?;
+
+    // The spl_token_2022 account
+    let spl_token_2022_account = next_account_info(&mut accounts)?;
+
+    // The system account
+    let system_program_account = next_account_info(&mut accounts)?;
+
+    initialize_pool_mint(
+        program_id,
+        pool_authority_account,
+        mint_account,
+        mint_account,
+        rent_account,
+        system_program_account,
+        spl_token_2022_account,
+        amount,
+    )?;
     Ok(())
 }
 
@@ -161,10 +184,14 @@ fn process_ticket_purchase(
     // Account PDA for payer
     let vault_pda = next_account_info(&mut accounts)?;
     // Stake pool vault
+    let pool_mint_account = next_account_info(&mut accounts)?;
+    // Spl 2022 token account
     let stake_pool_vault = next_account_info(&mut accounts)?;
-    // Rent exempt check
+
     let rent = Rent::get()?;
+
     let space = std::mem::size_of::<TicketAccountData>();
+
     if !rent.is_exempt(player.lamports(), space) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
@@ -177,7 +204,7 @@ fn process_ticket_purchase(
         return Err(solana_program::program_error::ProgramError::AccountAlreadyInitialized);
     }
 
-    if stake_pool_vault.data_is_empty() {
+    if pool_mint_account.data_is_empty() {
         return Err(solana_program::program_error::ProgramError::UninitializedAccount);
     }
 
@@ -221,15 +248,6 @@ fn process_ticket_purchase(
     )?;
 
     // Now send recipe token back to the player
-
-    let token_transfer_instruction = spl_token_2022::instruction::mint_to(
-        &spl_token_2022::ID,
-        &stake_pool_vault_data.receipt_mint,
-        &pda,
-        &player.key,
-        &[],
-        1,
-    )?;
 
     // Serialize the account data and store it in the account
 

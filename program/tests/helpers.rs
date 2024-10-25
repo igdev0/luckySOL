@@ -1,13 +1,14 @@
 use std::ops::Deref;
 
 use solana_lottery_program::{
-    processor::find_stake_pool_mint_pda,
+    processor::{find_stake_pool_mint_pda, find_stake_pool_vault_pda},
     state::{LotoInstruction, PoolStorageSeed},
     ID,
 };
 use solana_program_test::ProgramTest;
 use solana_program_test::*;
 use solana_sdk::{
+    account::Account,
     commitment_config::CommitmentLevel,
     hash::Hash,
     instruction::{AccountMeta, Instruction},
@@ -22,16 +23,23 @@ use solana_sdk::{
 
 type Res<T> = Result<T, ProgramError>;
 
-pub async fn setup() -> (BanksClient, Keypair, solana_sdk::hash::Hash) {
-    let program = ProgramTest::new(
+pub async fn setup() -> (BanksClient, Keypair, solana_sdk::hash::Hash, Keypair) {
+    let mut program = ProgramTest::new(
         "solana_lottery_program",
         ID,
         processor!(solana_lottery_program::processor::processor),
     );
-    solana_logger::setup_with_default("solana=trace");
-    let (mut banks_client, payer, recent_blockhash) = program.start().await;
 
-    (banks_client, payer, recent_blockhash)
+    let player = Keypair::new();
+    program.add_account(
+        player.pubkey(),
+        Account::new(100_000_000_000, 0, &system_program::ID),
+    );
+
+    // solana_logger::setup_with_default("solana=trace");
+    let (banks_client, payer, recent_blockhash) = program.start().await;
+
+    (banks_client, payer, recent_blockhash, player)
 }
 
 pub fn initialize_stake_pool_tx(
@@ -40,10 +48,12 @@ pub fn initialize_stake_pool_tx(
     recent_blockhash: &Hash,
 ) -> Transaction {
     let (pool_mint_account, ..) = find_stake_pool_mint_pda(&program_id, &pool_authority.pubkey());
+    let (pool_vault_account, ..) = find_stake_pool_vault_pda(&program_id, &pool_authority.pubkey());
 
     let instruction_data = LotoInstruction::InitializePool(100_000_500);
     let accounts = vec![
         AccountMeta::new(pool_authority.pubkey(), true),
+        AccountMeta::new(pool_vault_account, false),
         AccountMeta::new(pool_mint_account, false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),

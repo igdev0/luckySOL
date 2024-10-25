@@ -199,13 +199,10 @@ fn update_player_account<'a>(
     Ok(())
 }
 
-fn find_player_pda_account<'a>(
-    program_id: &Pubkey,
-    player_account: &AccountInfo<'a>,
-) -> (Pubkey, u8) {
+fn find_player_pda_account(program_id: &Pubkey, player_account: &Pubkey) -> (Pubkey, u8) {
     let player_account_seeds = &[
         PoolStorageSeed::PlayerAccount.as_bytes(),
-        player_account.key.as_ref(),
+        player_account.as_ref(),
     ];
 
     Pubkey::find_program_address(player_account_seeds, program_id)
@@ -235,7 +232,7 @@ fn initialize_player_account<'a>(
 
     // The PDA account for the player
     let (player_pda_account_address, bump_seed) =
-        find_player_pda_account(program_id, player_account);
+        find_player_pda_account(program_id, &player_account.key);
 
     if &player_pda_account_address != player_pda_account.key {
         return Err(LotteryError::InvalidPlayerPdaAccount.into());
@@ -277,7 +274,7 @@ fn initialize_player_token_account<'a>(
     player_account: &AccountInfo<'a>,
     player_pda_account: &AccountInfo<'a>,
 ) -> ProgramResult {
-    let (.., bump_seed) = find_player_pda_account(program_id, player_account);
+    let (.., bump_seed) = find_player_pda_account(program_id, &player_account.key);
     let init_account_instr = spl_token_2022::instruction::initialize_account(
         &spl_token_2022::ID,
         &player_pda_account.key,
@@ -344,7 +341,7 @@ fn process_ticket_purchase(
     let ticket_purchase_instr =
         system_instruction::transfer(player_account.key, stake_pool_vault.key, TICKET_PRICE);
 
-    let (.., bump_seed) = find_player_pda_account(program_id, player_account);
+    let (.., bump_seed) = find_player_pda_account(program_id, &player_account.key);
 
     invoke_signed(
         &ticket_purchase_instr,

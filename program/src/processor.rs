@@ -38,8 +38,20 @@ pub fn processor(
             process_ticket_purchase(program_id, accounts, account_data)
         }
         LotoInstruction::ClosePlayerAccount => Err(LotteryError::NotImplemented.into()),
-        LotoInstruction::SelectWinnersAndAirdrop() => Err(LotteryError::NotImplemented.into()),
+        LotoInstruction::SelectWinnersAndAirdrop(winners) => {
+            process_winners(program_id, accounts, winners)
+        }
     }
+}
+
+fn process_winners(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    winners: Vec<Pubkey>,
+) -> ProgramResult {
+    msg!("Winners selected");
+    winners.iter().for_each(|e| msg!("Winner: {:?}", e));
+    Ok(())
 }
 
 fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {

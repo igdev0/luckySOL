@@ -6,7 +6,7 @@ pub enum LotoInstruction {
     InitializePool(u64),
     Deposit(u64),
     PurchaseTicket(TicketAccountData),
-    SelectWinnersAndAirdrop(),
+    SelectWinnersAndAirdrop(Vec<Pubkey>),
     ClosePlayerAccount,
 }
 

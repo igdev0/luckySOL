@@ -179,3 +179,56 @@ async fn ticket_purchase() {
 
     assert_eq!(unpacked.amount, 2);
 }
+
+#[tokio::test]
+async fn select_winners() {
+    let (mut client, pool_authority, recent_blockhash, player) = helpers::setup().await;
+
+    let (pool_mint_account, ..) =
+        find_stake_pool_mint_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+    let (pool_vault_account, ..) =
+        find_stake_pool_vault_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+    let tx = initialize_stake_pool_tx(
+        &solana_lottery_program::ID,
+        &pool_authority,
+        &recent_blockhash,
+    );
+
+    client
+        .process_transaction_with_commitment(
+            tx,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .expect("Unable to process data");
+
+    let winners = vec![
+        player.pubkey(),
+        player.pubkey(),
+        player.pubkey(),
+        player.pubkey(),
+        player.pubkey(),
+    ];
+
+    let instruction_data = LotoInstruction::SelectWinnersAndAirdrop(winners);
+
+    let accounts = vec![AccountMeta::new(pool_authority.pubkey(), true)];
+
+    let instr =
+        Instruction::new_with_borsh(solana_lottery_program::ID, &instruction_data, accounts);
+
+    let tx = Transaction::new_signed_with_payer(
+        &[instr],
+        Some(&pool_authority.pubkey()),
+        &[&pool_authority],
+        recent_blockhash,
+    );
+
+    client
+        .process_transaction_with_commitment(
+            tx,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .expect("Unable to process data");
+}

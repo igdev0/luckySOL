@@ -6,6 +6,7 @@ use solana_lottery_program::state::{LotoInstruction, PoolStorageSeed};
 use solana_program_test::*;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
+    program_pack::Pack,
     pubkey::Pubkey,
     signature::Keypair,
     signer::Signer,
@@ -54,6 +55,18 @@ async fn initialize_pool() {
         )
         .await
         .expect("Unable to process data");
+
+    let mint_account = client
+        .get_account(pool_mint_account)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(mint_account.owner, spl_token_2022::ID);
+
+    let unpacked = spl_token_2022::state::Mint::unpack(&mint_account.data).unwrap();
+    assert_eq!(unpacked.supply, 0);
+    assert_eq!(unpacked.decimals, 0);
 }
 
 #[tokio::test]

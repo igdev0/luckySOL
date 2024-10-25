@@ -8,6 +8,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    msg,
     program::invoke,
     program::invoke_signed,
     pubkey::Pubkey,
@@ -251,8 +252,6 @@ fn process_pool_initialization(
 }
 
 fn update_player_account<'a>(
-    program_id: &Pubkey,
-    player_account: &AccountInfo<'a>,
     player_pda_account: &AccountInfo<'a>,
     new_merkle_root: [u8; 32],
 ) -> ProgramResult {
@@ -493,6 +492,7 @@ fn process_ticket_purchase(
     if !player_account.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
+
     if player_pda_account.data_is_empty() {
         initialize_player_account(
             program_id,
@@ -503,12 +503,7 @@ fn process_ticket_purchase(
             Some(account_data.merkle_root),
         )?;
     } else {
-        update_player_account(
-            program_id,
-            player_account,
-            player_pda_account,
-            account_data.merkle_root,
-        )?;
+        update_player_account(player_pda_account, account_data.merkle_root)?;
     }
 
     if player_token_pda_account.data_is_empty() {

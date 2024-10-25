@@ -35,9 +35,9 @@ pub async fn setup() -> (BanksClient, Keypair, solana_sdk::hash::Hash) {
 }
 
 pub fn initialize_stake_pool_tx(
-    program_id: Pubkey,
+    program_id: &Pubkey,
     pool_authority: &Keypair,
-    recent_blockhash: Hash,
+    recent_blockhash: &Hash,
 ) -> Transaction {
     let (pool_mint_account, ..) = find_stake_pool_mint_pda(&program_id, &pool_authority.pubkey());
 
@@ -50,12 +50,13 @@ pub fn initialize_stake_pool_tx(
         AccountMeta::new_readonly(system_program::id(), false),
     ];
 
-    let instruction = Instruction::new_with_borsh(program_id, &instruction_data, accounts);
+    let instruction =
+        Instruction::new_with_borsh(program_id.to_owned(), &instruction_data, accounts);
 
     Transaction::new_signed_with_payer(
         &[instruction],
         Some(&pool_authority.pubkey()),
         &[&pool_authority],
-        recent_blockhash,
+        recent_blockhash.to_owned(),
     )
 }

@@ -16,15 +16,17 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
-const PROGRAM_ID: Pubkey = solana_lottery_program::ID;
-
 #[tokio::test]
 async fn initialize_pool() {
-    let program_id: Pubkey = PROGRAM_ID;
     let (mut client, pool_authority, recent_blockhash) = helpers::setup().await;
 
-    let (pool_mint_account, ..) = find_stake_pool_mint_pda(&program_id, &pool_authority.pubkey());
-    let tx = initialize_stake_pool_tx(program_id, &pool_authority, recent_blockhash);
+    let (pool_mint_account, ..) =
+        find_stake_pool_mint_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+    let tx = initialize_stake_pool_tx(
+        &solana_lottery_program::ID,
+        &pool_authority,
+        &recent_blockhash,
+    );
     client
         .process_transaction_with_commitment(
             tx,

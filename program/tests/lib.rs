@@ -13,7 +13,6 @@ use solana_sdk::{
     sysvar::{self},
     transaction::Transaction,
 };
-// TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
 
 const PROGRAM_ID: Pubkey = solana_lottery_program::ID;
 
@@ -22,8 +21,7 @@ async fn initialize_pool() {
     let program_id: Pubkey = PROGRAM_ID;
     let (mut client, pool_authority, recent_blockhash) = helpers::setup().await;
 
-    let receipt_mint = Keypair::new();
-    let (pool_storage_account_address, _bump) = Pubkey::find_program_address(
+    let (pool_mint_account, _bump) = Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
             &pool_authority.pubkey().to_bytes(),
@@ -34,11 +32,10 @@ async fn initialize_pool() {
     let instruction_data = LotoInstruction::InitializePool(100_000_500);
     let accounts = vec![
         AccountMeta::new(pool_authority.pubkey(), true),
-        AccountMeta::new(pool_storage_account_address, false),
-        AccountMeta::new(receipt_mint.pubkey(), false),
-        AccountMeta::new_readonly(system_program::ID, false),
+        AccountMeta::new(pool_mint_account, false),
         AccountMeta::new_readonly(sysvar::rent::ID, false),
         AccountMeta::new_readonly(spl_token_2022::ID, false),
+        AccountMeta::new_readonly(system_program::ID, false),
     ];
 
     let instruction = Instruction::new_with_borsh(program_id, &instruction_data, accounts);

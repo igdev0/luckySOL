@@ -73,9 +73,6 @@ fn process_pool_initialization(
     // The PDA vault of the stake pool which will be used to store the tickets.
     let mint_account = next_account_info(&mut accounts)?;
 
-    // The receipt mint is the mint which will be used to create new tokens as users purchase tickets.
-    let receipt_mint = next_account_info(&mut accounts)?;
-
     // The rent account
     let rent_account = next_account_info(&mut accounts)?;
 
@@ -85,7 +82,7 @@ fn process_pool_initialization(
     // The system account
     let _system_program_account = next_account_info(&mut accounts)?;
 
-    let (pool_vault_addr, bump) = Pubkey::find_program_address(
+    let (pool_mint_address, bump) = Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
             pool_authority.key.as_ref(),
@@ -93,7 +90,7 @@ fn process_pool_initialization(
         program_id,
     );
 
-    if &pool_vault_addr != mint_account.key {
+    if &pool_mint_address != mint_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
 
@@ -135,7 +132,6 @@ fn process_pool_initialization(
         &token_init_instruction,
         &[
             pool_authority.clone(),
-            receipt_mint.clone(),
             mint_account.clone(),
             spl_token_2022_account.clone(),
             rent_account.clone(),

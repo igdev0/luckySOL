@@ -36,7 +36,7 @@ pub fn processor(
         }
         LotoInstruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
         LotoInstruction::PurchaseTicket(account_data) => {
-            process_player_initialization(program_id, accounts, account_data)
+            process_ticket_purchase(program_id, accounts, account_data)
         }
         LotoInstruction::ClosePlayerAccount => Err(LotteryError::NotImplemented.into()),
         LotoInstruction::SelectWinnersAndAirdrop() => Err(LotteryError::NotImplemented.into()),
@@ -150,7 +150,7 @@ fn process_pool_initialization(
 /// This function will create a new account for the player and transfer the ticket price to the stake pool vault.
 /// The player account will be initialized with the ticket data.
 /// The player account will be owned by the program.
-fn process_player_initialization(
+fn process_ticket_purchase(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     account_data: TicketAccountData,

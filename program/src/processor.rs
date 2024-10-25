@@ -18,9 +18,17 @@ use solana_program::{
 };
 
 use solana_program::program_pack::Pack;
+use spl_token_2022::state::Mint;
+
+const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
+
+// Function to convert SOL to lamports
+fn sol_to_lamports(sol: f64) -> u64 {
+    (sol * LAMPORTS_PER_SOL as f64) as u64
+}
 
 const DEVELOPMENT_CUT: f64 = 0.2;
-const TICKET_PRICE: u64 = 50_000_000; // 0.05 SOL
+const TICKET_PRICE: f64 = 0.05; // 0.05 SOL
 
 pub const STAKE_POOL_MINIMUM_AMOUNT: u32 = 100_000_000;
 
@@ -66,11 +74,76 @@ pub fn find_stake_pool_mint_pda(
 ) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[
+            PoolStorageSeed::ReceiptMint.as_bytes(),
+            pool_authority_address.as_ref(),
+        ],
+        program_id,
+    )
+}
+
+pub fn find_stake_pool_vault_pda(
+    program_id: &Pubkey,
+    pool_authority_address: &Pubkey,
+) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[
             PoolStorageSeed::StakePool.as_bytes(),
             pool_authority_address.as_ref(),
         ],
         program_id,
     )
+}
+
+fn initialize_pool_vault<'a>(
+    program_id: &Pubkey,
+    pool_authority_account: &AccountInfo<'a>,
+    pool_vault_account: &AccountInfo<'a>,
+    system_program_account: &AccountInfo<'a>,
+    amount: u64,
+) -> ProgramResult {
+    let (pool_vault_address, bump) =
+        find_stake_pool_vault_pda(program_id, &pool_authority_account.key);
+
+    if pool_vault_account.key != &pool_vault_address {
+        return Err(LotteryError::InvalidStakePoolVault.into());
+    }
+
+    let rent = Rent::get()?;
+
+    let exempt_balance = rent.minimum_balance(size_of::<PoolStorageAccount>());
+
+    if pool_authority_account.lamports() < (exempt_balance + amount) {
+        return Err(LotteryError::InsufficientFunds.into());
+    }
+
+    let pool_vault_account_instr = system_instruction::create_account(
+        &pool_authority_account.key,
+        &pool_vault_address,
+        exempt_balance + amount,
+        size_of::<PoolStorageAccount>() as u64,
+        program_id,
+    );
+
+    msg!(
+        "Invoking the pool vault account creation: {:?}",
+        pool_vault_address
+    );
+
+    invoke_signed(
+        &pool_vault_account_instr,
+        &[
+            pool_authority_account.clone(),
+            pool_vault_account.clone(),
+            system_program_account.clone(),
+        ],
+        &[&[
+            PoolStorageSeed::StakePool.as_bytes(),
+            &pool_authority_account.key.as_ref(),
+            &[bump],
+        ]],
+    )?;
+
+    Ok(())
 }
 
 fn initialize_pool_mint<'a>(
@@ -94,7 +167,7 @@ fn initialize_pool_mint<'a>(
 
     let exempt_balance = rent.minimum_balance(spl_token_2022::state::Mint::LEN);
 
-    if pool_authority_account.lamports() < (exempt_balance + amount) {
+    if pool_authority_account.lamports() < exempt_balance {
         return Err(LotteryError::InsufficientFunds.into());
     }
 
@@ -115,7 +188,7 @@ fn initialize_pool_mint<'a>(
             system_program_account.clone(),
         ],
         &[&[
-            PoolStorageSeed::StakePool.as_bytes(),
+            PoolStorageSeed::ReceiptMint.as_bytes(),
             &pool_authority_account.key.as_ref(),
             &[bump],
         ]],
@@ -138,7 +211,7 @@ fn initialize_pool_mint<'a>(
             rent_account.clone(),
         ],
         &[&[
-            PoolStorageSeed::StakePool.as_bytes(),
+            PoolStorageSeed::ReceiptMint.as_bytes(),
             &pool_authority_account.key.as_ref(),
             &[bump],
         ]],
@@ -157,6 +230,8 @@ fn process_pool_initialization(
     // The stake pool authority, is the authority which can verify tickets if they are valid and proceeding to airdrop prises.
     let pool_authority_account = next_account_info(&mut accounts)?;
 
+    let pool_vault_account = next_account_info(&mut accounts)?;
+
     // The PDA vault of the stake pool which will be used to store the tickets.
     let mint_account = next_account_info(&mut accounts)?;
 
@@ -168,6 +243,14 @@ fn process_pool_initialization(
 
     // The system account
     let system_program_account = next_account_info(&mut accounts)?;
+
+    initialize_pool_vault(
+        program_id,
+        pool_authority_account,
+        pool_vault_account,
+        system_program_account,
+        amount,
+    )?;
 
     initialize_pool_mint(
         program_id,
@@ -199,13 +282,50 @@ fn update_player_account<'a>(
     Ok(())
 }
 
-fn find_player_pda_account(program_id: &Pubkey, player_account: &Pubkey) -> (Pubkey, u8) {
-    let player_account_seeds = &[
-        PoolStorageSeed::PlayerAccount.as_bytes(),
-        player_account.as_ref(),
+pub fn find_player_pda_account(
+    program_id: &Pubkey,
+    player_account: &Pubkey,
+) -> (Pubkey, u8, Vec<Vec<u8>>) {
+    // Create a vector of owned byte vectors
+    let player_account_seeds = vec![
+        PoolStorageSeed::PlayerAccount.as_bytes().to_vec(),
+        player_account.to_bytes().to_vec(),
     ];
 
-    Pubkey::find_program_address(player_account_seeds, program_id)
+    // Convert references to slices for the `find_program_address` function
+    let seeds_refs: Vec<&[u8]> = player_account_seeds
+        .iter()
+        .map(|seed| seed.as_slice())
+        .collect();
+
+    // Find the program address based on the seeds
+    let (key, bump) = Pubkey::find_program_address(&seeds_refs, program_id);
+
+    // Return the key, bump, and the owned player account seeds
+    (key, bump, player_account_seeds)
+}
+
+pub fn find_player_token_pda_account(
+    program_id: &Pubkey,
+    player_account: &Pubkey,
+) -> (Pubkey, u8, Vec<Vec<u8>>) {
+    // Create a vector of owned byte vectors
+    let player_account_seeds = vec![
+        PoolStorageSeed::PlayerTokenAccount.as_bytes().to_vec(),
+        player_account.to_bytes().to_vec(),
+    ];
+
+    // Convert references to slices for the `find_program_address` function
+    let seeds_refs: Vec<&[u8]> = player_account_seeds
+        .iter()
+        .map(|seed| seed.as_slice())
+        .collect();
+
+    // Find the program address based on the seeds
+    let (key, bump) = Pubkey::find_program_address(&seeds_refs, program_id);
+
+    // Return the key, bump, and the owned player account seeds
+    (key, bump, player_account_seeds)
 }
 
 // This function is be responsible for creating a system account
@@ -213,8 +333,9 @@ fn find_player_pda_account(program_id: &Pubkey, player_account: &Pubkey) -> (Pub
 fn initialize_player_account<'a>(
     program_id: &Pubkey,
     player_account: &AccountInfo<'a>,
-    mint_account: &AccountInfo<'a>,
     player_pda_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
+    system_program_account: &AccountInfo<'a>,
     initial_merkle_root: Option<[u8; 32]>,
 ) -> ProgramResult {
     let rent = Rent::get()?;
@@ -231,7 +352,7 @@ fn initialize_player_account<'a>(
     }
 
     // The PDA account for the player
-    let (player_pda_account_address, bump_seed) =
+    let (player_pda_account_address, bump_seed, player_account_seed) =
         find_player_pda_account(program_id, &player_account.key);
 
     if &player_pda_account_address != player_pda_account.key {
@@ -248,11 +369,26 @@ fn initialize_player_account<'a>(
         ticket_account_data_space as u64,
         program_id,
     );
+    msg!(
+        "Invoking signed the player account creation: {:?}",
+        player_account.key
+    );
+
+    let mut seed_ref = player_account_seed
+        .iter()
+        .map(|s| s.as_slice())
+        .collect::<Vec<&[u8]>>();
+    let s = [bump_seed];
+    seed_ref.push(&s[..]);
 
     invoke_signed(
         &instruction,
-        &[player_account.clone(), player_pda_account.clone()],
-        &[&[player_account.key.as_ref(), &[bump_seed]]],
+        &[
+            player_account.clone(),
+            player_pda_account.clone(),
+            system_program_account.clone(),
+        ],
+        &[&seed_ref[..]],
     )?;
 
     let mut player_account_data = player_pda_account.try_borrow_mut_data()?;
@@ -270,22 +406,72 @@ fn initialize_player_account<'a>(
 // This function is be repsonsible for creating a token 2022 account for the player.
 fn initialize_player_token_account<'a>(
     program_id: &Pubkey,
-    mint_account: &AccountInfo<'a>,
     player_account: &AccountInfo<'a>,
-    player_pda_account: &AccountInfo<'a>,
+    player_token_pda_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
+    program_account: &AccountInfo<'a>,
+    rent_account: &AccountInfo<'a>,
 ) -> ProgramResult {
-    let (.., bump_seed) = find_player_pda_account(program_id, &player_account.key);
-    let init_account_instr = spl_token_2022::instruction::initialize_account(
-        &spl_token_2022::ID,
-        &player_pda_account.key,
-        &mint_account.key,
-        &program_id,
+    let rent = Rent::get()?;
+
+    let exempt_balance = rent.minimum_balance(spl_token_2022::state::Account::LEN);
+    let size = spl_token_2022::state::Account::LEN as u64;
+
+    let player_account_instr = system_instruction::create_account(
+        &player_account.key,
+        &player_token_pda_account.key,
+        exempt_balance,
+        size,
+        &spl_token_2022::id(),
+    );
+
+    let (_a, bump, signers_seeds) = find_player_token_pda_account(program_id, &player_account.key);
+
+    let mut seed_ref = signers_seeds
+        .iter()
+        .map(|s| s.as_slice())
+        .collect::<Vec<&[u8]>>();
+    let s = [bump];
+    seed_ref.push(&s[..]);
+
+    invoke_signed(
+        &player_account_instr,
+        &[
+            player_account.clone(),
+            player_token_pda_account.clone(),
+            rent_account.clone(),
+            program_account.clone(),
+        ],
+        &[&seed_ref[..]],
     )?;
+
+    let (.., bump_seed, player_account_seed) =
+        find_player_pda_account(program_id, &player_account.key);
+    let init_account_instr = spl_token_2022::instruction::initialize_account(
+        &spl_token_2022::id(),
+        &player_token_pda_account.key,
+        &mint_account.key,
+        &player_token_pda_account.key,
+    )?;
+
+    let mut seed_ref = player_account_seed
+        .iter()
+        .map(|s| s.as_slice())
+        .collect::<Vec<&[u8]>>();
+    let s = [bump_seed];
+    seed_ref.push(&s[..]);
 
     invoke_signed(
         &init_account_instr,
-        &[player_pda_account.clone(), mint_account.clone()],
-        &[&[player_account.key.as_ref(), &[bump_seed]]],
+        &[
+            // player_pda_account.clone(),
+            player_token_pda_account.clone(),
+            mint_account.clone(),
+            // player_account.clone(),
+            rent_account.clone(),
+            // program_account.clone(),
+        ],
+        &[&seed_ref[..]],
     )?;
 
     Ok(())
@@ -305,24 +491,37 @@ fn process_ticket_purchase(
     let player_account = next_account_info(&mut accounts)?;
     // Account PDA for payer
     let player_pda_account = next_account_info(&mut accounts)?;
+    // The player token account
+    let player_token_pda_account = next_account_info(&mut accounts)?;
     // Stake pool vault
+    let pool_vault_account = next_account_info(&mut accounts)?;
+    // Stake pool mint account
     let pool_mint_account = next_account_info(&mut accounts)?;
+
     // Spl 2022 token account
-    let stake_pool_vault = next_account_info(&mut accounts)?;
+    let rent_account = next_account_info(&mut accounts)?;
+
+    let _spl_2022_account = next_account_info(&mut accounts)?;
+
+    let system_account = next_account_info(&mut accounts)?;
+
+    let program_account = next_account_info(&mut accounts)?;
 
     if !player_account.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
-
     if player_pda_account.data_is_empty() {
+        msg!("Initializing Player Account: {:?}", player_account.key);
         initialize_player_account(
             program_id,
             player_account,
-            pool_mint_account,
             player_pda_account,
+            pool_mint_account,
+            system_account,
             Some(account_data.merkle_root),
         )?;
     } else {
+        msg!("Updating Player Account: {:?}", player_account.key);
         update_player_account(
             program_id,
             player_account,
@@ -331,22 +530,26 @@ fn process_ticket_purchase(
         )?;
     }
 
+    msg!(
+        "Initializing Player Token Account: {:?}",
+        player_account.key
+    );
     initialize_player_token_account(
         program_id,
-        pool_mint_account,
-        player_pda_account,
         player_account,
+        player_token_pda_account,
+        pool_mint_account,
+        &program_account.clone(),
+        &rent_account.clone(),
     )?;
 
+    msg!("Purchasing the ticket {:?}", player_account.key);
     let ticket_purchase_instr =
-        system_instruction::transfer(player_account.key, stake_pool_vault.key, TICKET_PRICE);
+        system_instruction::transfer(player_account.key, pool_vault_account.key, 100_000_000);
 
-    let (.., bump_seed) = find_player_pda_account(program_id, &player_account.key);
-
-    invoke_signed(
+    invoke(
         &ticket_purchase_instr,
-        &[player_account.clone(), stake_pool_vault.clone()],
-        &[&[player_account.key.as_ref(), &[bump_seed]]],
+        &[player_account.clone(), pool_vault_account.clone()],
     )?;
 
     Ok(())

@@ -27,7 +27,6 @@ pub struct PoolStorageAccount {
 pub enum PoolStorageSeed {
     StakePool,
     StakeHouse,
-    // FeesPool,
 }
 
 impl PoolStorageSeed {

@@ -511,14 +511,16 @@ fn process_ticket_purchase(
         )?;
     }
 
-    initialize_player_token_account(
-        program_id,
-        player_account,
-        player_token_pda_account,
-        pool_mint_account,
-        &program_account.clone(),
-        &rent_account.clone(),
-    )?;
+    if player_token_pda_account.data_is_empty() {
+        initialize_player_token_account(
+            program_id,
+            player_account,
+            player_token_pda_account,
+            pool_mint_account,
+            &program_account.clone(),
+            &rent_account.clone(),
+        )?;
+    }
 
     let ticket_purchase_instr =
         system_instruction::transfer(player_account.key, pool_vault_account.key, TICKET_PRICE);

@@ -62,12 +62,12 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
 
 pub fn find_stake_pool_mint_pda(
     program_id: &Pubkey,
-    pool_authority_account: &AccountInfo,
+    pool_authority_address: &Pubkey,
 ) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[
             PoolStorageSeed::StakePool.as_bytes(),
-            pool_authority_account.key.as_ref(),
+            pool_authority_address.as_ref(),
         ],
         program_id,
     )
@@ -83,7 +83,8 @@ fn initialize_pool_mint<'a>(
     spl_token_2022_account: &AccountInfo<'a>,
     amount: u64,
 ) -> ProgramResult {
-    let (pool_mint_address, bump) = find_stake_pool_mint_pda(program_id, pool_authority_account);
+    let (pool_mint_address, bump) =
+        find_stake_pool_mint_pda(program_id, &pool_authority_account.key);
 
     if &pool_mint_address != mint_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());

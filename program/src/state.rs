@@ -25,6 +25,8 @@ pub struct PoolStorageAccount {
 }
 
 pub enum PoolStorageSeed {
+    // The stake pool storage seed is used to create the PDA for the stake pool,
+    // owned by the spl_token_2022 program and then used as the mint for the receipt mint.
     StakePool,
     StakeHouse,
 }

@@ -65,6 +65,7 @@ async fn initialize_pool() {
     assert_eq!(mint_account.owner, spl_token_2022::ID);
 
     let unpacked = spl_token_2022::state::Mint::unpack(&mint_account.data).unwrap();
+
     assert_eq!(unpacked.supply, 0);
     assert_eq!(unpacked.decimals, 0);
 }

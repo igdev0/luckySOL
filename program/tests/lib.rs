@@ -1,6 +1,10 @@
 mod helpers;
 
-use solana_lottery_program::state::{LotoInstruction, PoolStorageSeed};
+use helpers::initialize_stake_pool_tx;
+use solana_lottery_program::{
+    processor::find_stake_pool_mint_pda,
+    state::{LotoInstruction, PoolStorageSeed},
+};
 use solana_program_test::*;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
@@ -19,32 +23,8 @@ async fn initialize_pool() {
     let program_id: Pubkey = PROGRAM_ID;
     let (mut client, pool_authority, recent_blockhash) = helpers::setup().await;
 
-    let (pool_mint_account, _bump) = Pubkey::find_program_address(
-        &[
-            PoolStorageSeed::StakePool.as_bytes(),
-            &pool_authority.pubkey().to_bytes(),
-        ],
-        &program_id,
-    );
-
-    let instruction_data = LotoInstruction::InitializePool(100_000_500);
-    let accounts = vec![
-        AccountMeta::new(pool_authority.pubkey(), true),
-        AccountMeta::new(pool_mint_account, false),
-        AccountMeta::new_readonly(sysvar::rent::ID, false),
-        AccountMeta::new_readonly(spl_token_2022::ID, false),
-        AccountMeta::new_readonly(system_program::ID, false),
-    ];
-
-    let instruction = Instruction::new_with_borsh(program_id, &instruction_data, accounts);
-
-    let tx = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&pool_authority.pubkey()),
-        &[&pool_authority],
-        recent_blockhash,
-    );
-
+    let (pool_mint_account, ..) = find_stake_pool_mint_pda(&program_id, &pool_authority.pubkey());
+    let tx = initialize_stake_pool_tx(program_id, &pool_authority, recent_blockhash);
     client
         .process_transaction_with_commitment(
             tx,

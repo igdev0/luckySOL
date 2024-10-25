@@ -1,6 +1,4 @@
 mod helpers;
-use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
-use std::str::FromStr;
 
 use solana_lottery_program::state::{LotoInstruction, PoolStorageSeed};
 use solana_program_test::*;
@@ -8,7 +6,6 @@ use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_pack::Pack,
     pubkey::Pubkey,
-    signature::Keypair,
     signer::Signer,
     system_program,
     sysvar::{self},
@@ -71,5 +68,4 @@ async fn initialize_pool() {
 }
 
 #[tokio::test]
-
 async fn initialize_player_account() {}

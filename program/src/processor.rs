@@ -8,6 +8,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    msg,
     program::invoke,
     program::invoke_signed,
     pubkey::Pubkey,
@@ -468,6 +469,8 @@ fn process_ticket_purchase(
     account_data: TicketAccountData,
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
+    // Pool authority
+    let pool_authority_account = next_account_info(&mut accounts)?;
     // Account payer
     let player_account = next_account_info(&mut accounts)?;
     // Account PDA for payer
@@ -482,7 +485,7 @@ fn process_ticket_purchase(
     // Spl 2022 token account
     let rent_account = next_account_info(&mut accounts)?;
 
-    let _spl_2022_account = next_account_info(&mut accounts)?;
+    let spl_2022_account = next_account_info(&mut accounts)?;
 
     let system_account = next_account_info(&mut accounts)?;
 
@@ -528,6 +531,33 @@ fn process_ticket_purchase(
             pool_vault_account.clone(),
             system_account.clone(),
         ],
+    )?;
+
+    let ticket_purchase_receipt = spl_token_2022::instruction::mint_to(
+        &spl_token_2022::id(),
+        pool_mint_account.key,
+        player_token_pda_account.key,
+        &pool_mint_account.key,
+        &[&pool_mint_account.key],
+        1,
+    )?;
+
+    let (.., bump) = find_stake_pool_mint_pda(program_id, &pool_authority_account.key);
+
+    invoke_signed(
+        &ticket_purchase_receipt,
+        &[
+            pool_mint_account.clone(),
+            player_token_pda_account.clone(),
+            player_pda_account.clone(),
+            pool_authority_account.clone(),
+            spl_2022_account.clone(),
+        ],
+        &[&[
+            PoolStorageSeed::ReceiptMint.as_bytes(),
+            &pool_authority_account.key.as_ref(),
+            &[bump],
+        ]],
     )?;
 
     Ok(())

@@ -1,3 +1,4 @@
+use borsh::error;
 use solana_program::program_error::ProgramError;
 use thiserror::Error;
 
@@ -11,6 +12,10 @@ pub enum LotteryError {
     InvalidStakePoolVault,
     #[error("InsufficientFunds")]
     InsufficientFunds,
+    #[error("The stake pool is not initialized")]
+    StakePoolNotInitialized,
+    #[error("Invalid player PDA account")]
+    InvalidPlayerPdaAccount,
 }
 
 impl From<LotteryError> for ProgramError {

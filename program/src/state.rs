@@ -29,6 +29,7 @@ pub enum PoolStorageSeed {
     // owned by the spl_token_2022 program and then used as the mint for the receipt mint.
     StakePool,
     StakeHouse,
+    PlayerAccount,
 }
 
 impl PoolStorageSeed {
@@ -36,6 +37,7 @@ impl PoolStorageSeed {
         match self {
             PoolStorageSeed::StakePool => "StakePool".as_bytes(),
             PoolStorageSeed::StakeHouse => "StakeHouse".as_bytes(),
+            PoolStorageSeed::PlayerAccount => "PlayerAccount".as_bytes(),
         }
     }
 }

@@ -100,7 +100,11 @@ fn initialize_pool_mint<'a>(
 
     invoke_signed(
         &mint_account_instr,
-        &[pool_authority_account.clone(), mint_account.clone()],
+        &[
+            pool_authority_account.clone(),
+            mint_account.clone(),
+            system_program_account.clone(),
+        ],
         &[&[
             PoolStorageSeed::StakePool.as_bytes(),
             &pool_authority_account.key.as_ref(),
@@ -111,7 +115,7 @@ fn initialize_pool_mint<'a>(
     let token_init_instruction = spl_token_2022::instruction::initialize_mint(
         &spl_token_2022::ID,
         &mint_account.key,
-        &mint_account.key,
+        &mint_authority_account.key,
         None,
         0,
     )?;
@@ -169,6 +173,118 @@ fn process_pool_initialization(
     Ok(())
 }
 
+fn update_player_account<'a>(
+    program_id: &Pubkey,
+    player_account: &AccountInfo<'a>,
+    player_pda_account: &AccountInfo<'a>,
+    new_merkle_root: [u8; 32],
+) -> ProgramResult {
+    let mut player_account_data = player_pda_account.try_borrow_mut_data()?;
+
+    let mut ticket_data = TicketAccountData::try_from_slice(&player_account_data)?;
+
+    ticket_data.merkle_root = new_merkle_root;
+
+    ticket_data.serialize(&mut &mut player_account_data[..])?;
+
+    Ok(())
+}
+
+fn find_player_pda_account<'a>(
+    program_id: &Pubkey,
+    player_account: &AccountInfo<'a>,
+) -> (Pubkey, u8) {
+    let player_account_seeds = &[
+        PoolStorageSeed::PlayerAccount.as_bytes(),
+        player_account.key.as_ref(),
+    ];
+
+    Pubkey::find_program_address(player_account_seeds, program_id)
+}
+
+// This function is be responsible for creating a system account
+// for the player and initializing it with the ticket data.
+fn initialize_player_account<'a>(
+    program_id: &Pubkey,
+    player_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
+    player_pda_account: &AccountInfo<'a>,
+    initial_merkle_root: Option<[u8; 32]>,
+) -> ProgramResult {
+    let rent = Rent::get()?;
+
+    let ticket_account_data_space = std::mem::size_of::<TicketAccountData>();
+
+    if !rent.is_exempt(player_account.lamports(), ticket_account_data_space) {
+        return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
+    }
+
+    // Check if the mint account is initialized
+    if mint_account.data_is_empty() {
+        return Err(LotteryError::StakePoolNotInitialized.into());
+    }
+
+    // The PDA account for the player
+    let (player_pda_account_address, bump_seed) =
+        find_player_pda_account(program_id, player_account);
+
+    if &player_pda_account_address != player_pda_account.key {
+        return Err(LotteryError::InvalidPlayerPdaAccount.into());
+    }
+
+    // The minimum balance required to create the account
+    let minimum_balance = rent.minimum_balance(ticket_account_data_space);
+
+    let instruction = system_instruction::create_account(
+        &player_account.key,
+        &player_pda_account_address,
+        minimum_balance,
+        ticket_account_data_space as u64,
+        program_id,
+    );
+
+    invoke_signed(
+        &instruction,
+        &[player_account.clone(), player_pda_account.clone()],
+        &[&[player_account.key.as_ref(), &[bump_seed]]],
+    )?;
+
+    let mut player_account_data = player_pda_account.try_borrow_mut_data()?;
+
+    let ticket_data = TicketAccountData {
+        merkle_root: initial_merkle_root.unwrap_or([0; 32]),
+        address: *player_account.key,
+    };
+
+    ticket_data.serialize(&mut &mut player_account_data[..])?;
+
+    Ok(())
+}
+
+// This function is be repsonsible for creating a token 2022 account for the player.
+fn initialize_player_token_account<'a>(
+    program_id: &Pubkey,
+    mint_account: &AccountInfo<'a>,
+    player_account: &AccountInfo<'a>,
+    player_pda_account: &AccountInfo<'a>,
+) -> ProgramResult {
+    let (.., bump_seed) = find_player_pda_account(program_id, player_account);
+    let init_account_instr = spl_token_2022::instruction::initialize_account(
+        &spl_token_2022::ID,
+        &player_pda_account.key,
+        &mint_account.key,
+        &program_id,
+    )?;
+
+    invoke_signed(
+        &init_account_instr,
+        &[player_pda_account.clone(), mint_account.clone()],
+        &[&[player_account.key.as_ref(), &[bump_seed]]],
+    )?;
+
+    Ok(())
+}
+
 /// Process the player initialization
 /// This function will create a new account for the player and transfer the ticket price to the stake pool vault.
 /// The player account will be initialized with the ticket data.
@@ -180,80 +296,52 @@ fn process_ticket_purchase(
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
     // Account payer
-    let player = next_account_info(&mut accounts)?;
+    let player_account = next_account_info(&mut accounts)?;
     // Account PDA for payer
-    let vault_pda = next_account_info(&mut accounts)?;
+    let player_pda_account = next_account_info(&mut accounts)?;
     // Stake pool vault
     let pool_mint_account = next_account_info(&mut accounts)?;
     // Spl 2022 token account
     let stake_pool_vault = next_account_info(&mut accounts)?;
 
-    let rent = Rent::get()?;
-
-    let space = std::mem::size_of::<TicketAccountData>();
-
-    if !rent.is_exempt(player.lamports(), space) {
-        return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
-    }
-
-    if !player.is_signer {
+    if !player_account.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
 
-    if !vault_pda.data_is_empty() {
-        return Err(solana_program::program_error::ProgramError::AccountAlreadyInitialized);
+    if player_pda_account.data_is_empty() {
+        initialize_player_account(
+            program_id,
+            player_account,
+            pool_mint_account,
+            player_pda_account,
+            Some(account_data.merkle_root),
+        )?;
+    } else {
+        update_player_account(
+            program_id,
+            player_account,
+            player_pda_account,
+            account_data.merkle_root,
+        )?;
     }
 
-    if pool_mint_account.data_is_empty() {
-        return Err(solana_program::program_error::ProgramError::UninitializedAccount);
-    }
-
-    let seeds = &[player.key.as_ref()];
-    let (pda, bump_seed) = Pubkey::find_program_address(seeds, program_id);
-
-    let lamports = rent.minimum_balance(space);
-
-    let instruction =
-        system_instruction::create_account(&player.key, &pda, lamports, space as u64, program_id);
-
-    invoke_signed(
-        &instruction,
-        &[player.clone(), vault_pda.clone()],
-        &[&[player.key.as_ref(), &[bump_seed]]],
-    )?;
-
-    let stake_pool_vault_data = stake_pool_vault.try_borrow_data()?;
-    let stake_pool_vault_data = PoolStorageAccount::try_from_slice(&stake_pool_vault_data)?;
-
-    let token_account_instruction = spl_token_2022::instruction::initialize_account(
-        &spl_token_2022::ID,
-        &player.key,
-        &stake_pool_vault_data.receipt_mint,
-        &pda,
+    initialize_player_token_account(
+        program_id,
+        pool_mint_account,
+        player_pda_account,
+        player_account,
     )?;
 
     let ticket_purchase_instr =
-        system_instruction::transfer(player.key, stake_pool_vault.key, TICKET_PRICE);
+        system_instruction::transfer(player_account.key, stake_pool_vault.key, TICKET_PRICE);
+
+    let (.., bump_seed) = find_player_pda_account(program_id, player_account);
 
     invoke_signed(
         &ticket_purchase_instr,
-        &[player.clone(), stake_pool_vault.clone()],
-        &[&[player.key.as_ref(), &[bump_seed]]],
+        &[player_account.clone(), stake_pool_vault.clone()],
+        &[&[player_account.key.as_ref(), &[bump_seed]]],
     )?;
-
-    invoke_signed(
-        &token_account_instruction,
-        &[player.clone()],
-        &[&[player.key.as_ref(), &[bump_seed]]],
-    )?;
-
-    // Now send recipe token back to the player
-
-    // Serialize the account data and store it in the account
-
-    let serialized_data = to_vec(&account_data).unwrap();
-
-    vault_pda.try_borrow_mut_data()?[..serialized_data.len()].copy_from_slice(&serialized_data);
 
     Ok(())
 }

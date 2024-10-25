@@ -7,13 +7,12 @@ use solana_lottery_program::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::{LotoInstruction, PoolStorageSeed},
+    state::LotoInstruction,
 };
 use solana_program_test::*;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_pack::Pack,
-    pubkey::Pubkey,
     signer::Signer,
     system_program,
     sysvar::{self},

@@ -87,6 +87,7 @@ async fn ticket_purchase() {
         find_player_token_pda_account(&solana_lottery_program::ID, &player.pubkey());
 
     let accounts = vec![
+        AccountMeta::new(pool_authority.pubkey(), false),
         AccountMeta::new(player.pubkey(), true),
         AccountMeta::new(player_pda_address, false),
         AccountMeta::new(player_token_pda_address, false),
@@ -127,5 +128,15 @@ async fn ticket_purchase() {
             .unwrap();
 
     assert_eq!(unpacked.merkle_root, [0; 32]);
-    assert_eq!(unpacked.address, player_pda_address);
+    assert_eq!(unpacked.address, player.pubkey());
+
+    let player_token_account = client
+        .get_account(player_token_pda_address)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let unpacked = spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
+
+    assert_eq!(unpacked.amount, 1);
 }

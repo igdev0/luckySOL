@@ -68,4 +68,4 @@ async fn initialize_pool() {
 }
 
 #[tokio::test]
-async fn initialize_player_account() {}
+async fn ticket_purchase() {}

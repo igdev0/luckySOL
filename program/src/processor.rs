@@ -3,12 +3,11 @@ use crate::{
     state::{LotoInstruction, PoolStorageAccount, PoolStorageSeed, TicketAccountData},
 };
 
-use borsh::{to_vec, BorshDeserialize, BorshSerialize};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    msg,
     program::invoke,
     program::invoke_signed,
     pubkey::Pubkey,
@@ -18,17 +17,8 @@ use solana_program::{
 };
 
 use solana_program::program_pack::Pack;
-use spl_token_2022::state::Mint;
 
-const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-
-// Function to convert SOL to lamports
-fn sol_to_lamports(sol: f64) -> u64 {
-    (sol * LAMPORTS_PER_SOL as f64) as u64
-}
-
-const DEVELOPMENT_CUT: f64 = 0.2;
-const TICKET_PRICE: f64 = 0.05; // 0.05 SOL
+const TICKET_PRICE: u64 = 50_000_000; // 0.05 SOL
 
 pub const STAKE_POOL_MINIMUM_AMOUNT: u32 = 100_000_000;
 
@@ -121,12 +111,7 @@ fn initialize_pool_vault<'a>(
         &pool_vault_address,
         exempt_balance + amount,
         size_of::<PoolStorageAccount>() as u64,
-        program_id,
-    );
-
-    msg!(
-        "Invoking the pool vault account creation: {:?}",
-        pool_vault_address
+        &program_id,
     );
 
     invoke_signed(
@@ -365,13 +350,9 @@ fn initialize_player_account<'a>(
     let instruction = system_instruction::create_account(
         &player_account.key,
         &player_pda_account_address,
-        minimum_balance,
+        minimum_balance + TICKET_PRICE,
         ticket_account_data_space as u64,
         program_id,
-    );
-    msg!(
-        "Invoking signed the player account creation: {:?}",
-        player_account.key
     );
 
     let mut seed_ref = player_account_seed
@@ -511,7 +492,6 @@ fn process_ticket_purchase(
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
     if player_pda_account.data_is_empty() {
-        msg!("Initializing Player Account: {:?}", player_account.key);
         initialize_player_account(
             program_id,
             player_account,
@@ -521,7 +501,6 @@ fn process_ticket_purchase(
             Some(account_data.merkle_root),
         )?;
     } else {
-        msg!("Updating Player Account: {:?}", player_account.key);
         update_player_account(
             program_id,
             player_account,
@@ -530,10 +509,6 @@ fn process_ticket_purchase(
         )?;
     }
 
-    msg!(
-        "Initializing Player Token Account: {:?}",
-        player_account.key
-    );
     initialize_player_token_account(
         program_id,
         player_account,
@@ -543,13 +518,16 @@ fn process_ticket_purchase(
         &rent_account.clone(),
     )?;
 
-    msg!("Purchasing the ticket {:?}", player_account.key);
     let ticket_purchase_instr =
-        system_instruction::transfer(player_account.key, pool_vault_account.key, 100_000_000);
+        system_instruction::transfer(player_account.key, pool_vault_account.key, TICKET_PRICE);
 
     invoke(
         &ticket_purchase_instr,
-        &[player_account.clone(), pool_vault_account.clone()],
+        &[
+            player_account.clone(),
+            pool_vault_account.clone(),
+            system_account.clone(),
+        ],
     )?;
 
     Ok(())

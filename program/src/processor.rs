@@ -71,15 +71,19 @@ fn process_pool_initialization(
     let pool_authority = next_account_info(&mut accounts)?;
 
     // The PDA vault of the stake pool which will be used to store the tickets.
-    let stake_pool_vault = next_account_info(&mut accounts)?;
+    let mint_account = next_account_info(&mut accounts)?;
 
     // The receipt mint is the mint which will be used to create new tokens as users purchase tickets.
     let receipt_mint = next_account_info(&mut accounts)?;
 
-    // The system program account
-    let _system_program_account = next_account_info(&mut accounts)?;
+    // The rent account
     let rent_account = next_account_info(&mut accounts)?;
+
+    // The spl_token_2022 account
     let spl_token_2022_account = next_account_info(&mut accounts)?;
+
+    // The system account
+    let _system_program_account = next_account_info(&mut accounts)?;
 
     let (pool_vault_addr, bump) = Pubkey::find_program_address(
         &[
@@ -89,32 +93,29 @@ fn process_pool_initialization(
         program_id,
     );
 
-    if &pool_vault_addr != stake_pool_vault.key {
+    if &pool_vault_addr != mint_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
 
     let rent = Rent::get()?;
-    let account_size = std::mem::size_of::<PoolStorageAccount>();
 
-    let exempt_balance = rent.minimum_balance(account_size);
+    let exempt_balance = rent.minimum_balance(spl_token_2022::state::Mint::LEN);
 
     if pool_authority.lamports() < (exempt_balance + amount) {
-        return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
+        return Err(LotteryError::InsufficientFunds.into());
     }
 
-    let token_account_exempt_balance = rent.minimum_balance(spl_token_2022::state::Mint::LEN);
-    // Initialize stake pool account
-    let token_account_instr = system_instruction::create_account(
+    let mint_account_instr = system_instruction::create_account(
         &pool_authority.key,
-        &stake_pool_vault.key,
-        token_account_exempt_balance,
+        &mint_account.key,
+        exempt_balance + amount,
         spl_token_2022::state::Mint::LEN as u64,
         &spl_token_2022::ID,
     );
 
     invoke_signed(
-        &token_account_instr,
-        &[pool_authority.clone(), stake_pool_vault.clone()],
+        &mint_account_instr,
+        &[pool_authority.clone(), mint_account.clone()],
         &[&[
             PoolStorageSeed::StakePool.as_bytes(),
             &pool_authority.key.as_ref(),
@@ -124,19 +125,18 @@ fn process_pool_initialization(
 
     let token_init_instruction = spl_token_2022::instruction::initialize_mint(
         &spl_token_2022::ID,
-        &stake_pool_vault.key,
-        &stake_pool_vault.key,
+        &mint_account.key,
+        &mint_account.key,
         None,
         0,
     )?;
 
-    msg!("Creating SPL 2022 mint");
     invoke_signed(
         &token_init_instruction,
         &[
             pool_authority.clone(),
             receipt_mint.clone(),
-            stake_pool_vault.clone(),
+            mint_account.clone(),
             spl_token_2022_account.clone(),
             rent_account.clone(),
         ],
@@ -147,15 +147,6 @@ fn process_pool_initialization(
         ]],
     )?;
 
-    let mut stake_pool_data = stake_pool_vault.try_borrow_mut_data()?;
-
-    let data = PoolStorageAccount {
-        receipt_mint: receipt_mint.key.clone(),
-    };
-
-    // let spl_instruction = spl_token_2022::instruction::set_authority(&spl_token_2022::ID, owned_pubkey, new_authority_pubkey, authority_type, owner_pubkey, signer_pubkeys)?;
-
-    data.serialize(&mut *stake_pool_data)?;
     Ok(())
 }
 

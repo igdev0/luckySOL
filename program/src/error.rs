@@ -10,6 +10,8 @@ pub enum LotteryError {
     NotImplemented,
     #[error("Invalid InvalidStakePoolVault")]
     InvalidStakePoolVault,
+    #[error("InsufficientFunds")]
+    InsufficientFunds,
 }
 
 impl From<LotteryError> for ProgramError {

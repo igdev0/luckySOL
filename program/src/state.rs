@@ -22,7 +22,6 @@ pub struct TicketAccountData {
 pub struct PoolStorageAccount {
     // The recipe token, used to send back a recipe depending on the amount of tickets bought, 1 token per ticket.
     pub receipt_mint: Pubkey,
-    // pub fees_pool_authority: Pubkey,
 }
 
 pub enum PoolStorageSeed {
@@ -36,7 +35,6 @@ impl PoolStorageSeed {
         match self {
             PoolStorageSeed::StakePool => "StakePool".as_bytes(),
             PoolStorageSeed::StakeHouse => "StakeHouse".as_bytes(),
-            // PoolStorageSeed::FeesPool => "FeesPool".as_bytes(),
         }
     }
 }

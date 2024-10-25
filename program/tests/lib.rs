@@ -85,27 +85,16 @@ async fn ticket_purchase() {
     let (player_token_pda_address, ..) =
         find_player_token_pda_account(&solana_lottery_program::ID, &player.pubkey());
 
-    let accounts = vec![
-        AccountMeta::new(pool_authority.pubkey(), false),
-        AccountMeta::new(player.pubkey(), true),
-        AccountMeta::new(player_pda_address, false),
-        AccountMeta::new(player_token_pda_address, false),
-        AccountMeta::new(pool_vault_account, false),
-        AccountMeta::new(pool_mint_account, false),
-        AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
-        AccountMeta::new_readonly(system_program::id(), false),
-        AccountMeta::new_readonly(solana_lottery_program::id(), false),
-    ];
-
-    let instruction =
-        Instruction::new_with_borsh(solana_lottery_program::ID, &ticket_data, accounts);
-
-    let tx = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&player.pubkey()),
-        &[&player],
+    let tx = helpers::purchase_ticket_tx(
+        &solana_lottery_program::ID,
+        &pool_authority,
+        &player,
+        player_pda_address,
+        player_token_pda_address,
+        pool_vault_account,
+        pool_mint_account,
         recent_blockhash,
+        &ticket_data,
     );
 
     client
@@ -138,4 +127,55 @@ async fn ticket_purchase() {
     let unpacked = spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
 
     assert_eq!(unpacked.amount, 1);
+
+    // Purchase second ticket
+
+    let ticket_data =
+        LotoInstruction::PurchaseTicket(solana_lottery_program::state::TicketAccountData {
+            merkle_root: [1; 32],
+            address: player.pubkey(),
+        });
+    let new_transaction = helpers::purchase_ticket_tx(
+        &solana_lottery_program::ID,
+        &pool_authority,
+        &player,
+        player_pda_address,
+        player_token_pda_address,
+        pool_vault_account,
+        pool_mint_account,
+        recent_blockhash,
+        &ticket_data,
+    );
+
+    client
+        .process_transaction_with_commitment(
+            new_transaction,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .expect("Unable to process data");
+
+    let ticket_account = client
+        .get_account(player_pda_address)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let unpacked =
+        solana_lottery_program::state::TicketAccountData::try_from_slice(&ticket_account.data)
+            .unwrap();
+
+    dbg!(&unpacked);
+    assert_eq!(unpacked.merkle_root, [1; 32]);
+    assert_eq!(unpacked.address, player.pubkey());
+
+    let player_token_account = client
+        .get_account(player_token_pda_address)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let unpacked = spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
+
+    assert_eq!(unpacked.amount, 2);
 }

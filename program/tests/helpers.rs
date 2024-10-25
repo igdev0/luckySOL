@@ -70,3 +70,37 @@ pub fn initialize_stake_pool_tx(
         recent_blockhash.to_owned(),
     )
 }
+
+pub fn purchase_ticket_tx(
+    program_id: &Pubkey,
+    pool_authority: &Keypair,
+    player: &Keypair,
+    player_pda_address: Pubkey,
+    player_token_pda_address: Pubkey,
+    pool_vault_account: Pubkey,
+    pool_mint_account: Pubkey,
+    recent_blockhash: Hash,
+    ticket_data: &LotoInstruction,
+) -> Transaction {
+    let accounts = vec![
+        AccountMeta::new(pool_authority.pubkey(), false),
+        AccountMeta::new(player.pubkey(), true),
+        AccountMeta::new(player_pda_address, false),
+        AccountMeta::new(player_token_pda_address, false),
+        AccountMeta::new(pool_vault_account, false),
+        AccountMeta::new(pool_mint_account, false),
+        AccountMeta::new_readonly(sysvar::rent::id(), false),
+        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(system_program::id(), false),
+        AccountMeta::new_readonly(solana_lottery_program::id(), false),
+    ];
+
+    let instruction = Instruction::new_with_borsh(*program_id, &ticket_data, accounts);
+
+    Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&player.pubkey()),
+        &[&player],
+        recent_blockhash,
+    )
+}

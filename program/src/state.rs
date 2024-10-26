@@ -19,6 +19,13 @@ pub struct TicketAccountData {
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
+pub struct Winner {
+    amount: u64,
+    merkle_leaf: [u8; 32],
+    address: Pubkey,
+}
+
+#[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct PoolStorageAccount {
     // The recipe token, used to send back a recipe depending on the amount of tickets bought, 1 token per ticket.
     pub receipt_mint: Pubkey,

@@ -39,14 +39,14 @@ pub fn processor(
         }
         LotoInstruction::ClosePlayerAccount => Err(LotteryError::NotImplemented.into()),
         LotoInstruction::SelectWinnersAndAirdrop(winners) => {
-            process_winners(program_id, accounts, winners)
+            process_winners(program_id, &accounts.to_vec(), winners)
         }
     }
 }
 
 fn process_winners(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &Vec<AccountInfo>,
     winners: Vec<Pubkey>,
 ) -> ProgramResult {
     msg!("Winners selected");

@@ -14,8 +14,6 @@ pub enum LotoInstruction {
 pub struct TicketAccountData {
     // The merkle root of the ticket stored offchain
     pub merkle_root: [u8; 32],
-    // The address of the account purchasing the ticket
-    pub address: Pubkey,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]

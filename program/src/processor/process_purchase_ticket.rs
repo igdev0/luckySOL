@@ -210,7 +210,6 @@ fn initialize_player_account<'a>(
 
     let ticket_data = TicketAccountData {
         merkle_root: initial_merkle_root.unwrap_or([0; 32]),
-        address: *player_account.key,
     };
 
     ticket_data.serialize(&mut &mut player_account_data[..])?;

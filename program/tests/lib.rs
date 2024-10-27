@@ -74,7 +74,6 @@ async fn ticket_purchase() {
     let ticket_data =
         LotoInstruction::PurchaseTicket(solana_lottery_program::state::TicketAccountData {
             merkle_root: [0; 32],
-            address: player.pubkey(),
         });
     let (player_pda_address, ..) =
         find_player_pda_account(&solana_lottery_program::ID, &player.pubkey());
@@ -113,7 +112,6 @@ async fn ticket_purchase() {
             .unwrap();
 
     assert_eq!(unpacked.merkle_root, [0; 32]);
-    assert_eq!(unpacked.address, player.pubkey());
 
     let player_token_account = client
         .get_account(player_token_pda_address)
@@ -130,7 +128,6 @@ async fn ticket_purchase() {
     let ticket_data =
         LotoInstruction::PurchaseTicket(solana_lottery_program::state::TicketAccountData {
             merkle_root: [1; 32],
-            address: player.pubkey(),
         });
     let new_transaction = helpers::purchase_ticket_tx(
         &solana_lottery_program::ID,
@@ -164,7 +161,6 @@ async fn ticket_purchase() {
 
     dbg!(&unpacked);
     assert_eq!(unpacked.merkle_root, [1; 32]);
-    assert_eq!(unpacked.address, player.pubkey());
 
     let player_token_account = client
         .get_account(player_token_pda_address)

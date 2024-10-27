@@ -1,5 +1,4 @@
 mod helpers;
-
 use borsh::BorshDeserialize;
 use helpers::initialize_stake_pool_tx;
 use solana_lottery_program::{
@@ -14,8 +13,6 @@ use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_pack::Pack,
     signer::Signer,
-    system_program,
-    sysvar::{self},
     transaction::Transaction,
 };
 

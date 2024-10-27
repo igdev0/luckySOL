@@ -15,6 +15,8 @@ pub enum LotteryError {
     StakePoolNotInitialized,
     #[error("Invalid player PDA account")]
     InvalidPlayerPdaAccount,
+    #[error("The authority must signn the transaction")]
+    AuthorityMustSign,
 }
 
 impl From<LotteryError> for ProgramError {

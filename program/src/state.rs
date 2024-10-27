@@ -18,9 +18,9 @@ pub struct TicketAccountData {
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct Winner {
-    amount: u64,
-    merkle_leaf: [u8; 32],
-    address: Pubkey,
+    pub amount: u64,
+    pub merkle_leaf: [u8; 32],
+    pub address: Pubkey,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]

@@ -18,11 +18,14 @@ fn process_winner<'a>(
     stake_pool_account: &AccountInfo<'a>,
     account: &AccountInfo<'a>,
     amount: u64,
-    ticket: [u8; 32],
+    tickets: Vec<[u8; 32]>,
 ) -> ProgramResult {
     let account_data = account.try_borrow_data()?;
     let account_data = TicketAccountData::try_from_slice(&account_data)?;
+    // account_data.merkle_root
     account_data.merkle_root;
+
+    // let proof_hashes = tickets.iter().map(|ticket| Sha256::hash(ticket)).collect::<Vec<[u8; 32]>();
     // 1. Validate ticket correctness
     // let merkle_proof = MerkleProof::new(&[proof_hashes])
 
@@ -69,7 +72,7 @@ pub fn process_winners(
                 stake_pool_account,
                 account,
                 winner.amount,
-                winner.merkle_leaf,
+                winner.tickets.clone(),
             )
         })
         .collect()

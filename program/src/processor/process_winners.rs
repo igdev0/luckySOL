@@ -1,19 +1,15 @@
-use std::borrow::BorrowMut;
-
 use borsh::BorshDeserialize;
-use rs_merkle::{algorithms::Sha256, Hasher, MerkleProof, MerkleTree};
+use rs_merkle::{algorithms::Sha256, MerkleProof};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     msg,
-    program::invoke_signed,
     pubkey::Pubkey,
-    system_instruction,
 };
 
 use crate::{
     error::LotteryError,
-    state::{PoolStorageSeed, TicketAccountData, Winner},
+    state::{TicketAccountData, Winner},
 };
 
 use super::find_stake_pool_vault_pda;

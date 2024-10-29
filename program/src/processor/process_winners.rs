@@ -68,6 +68,7 @@ pub fn process_winners(
     if stake_pool_account.owner != program_id {
         return Err(LotteryError::IncorrectOwner.into());
     }
+
     let (stake_pool_pda, ..) = find_stake_pool_vault_pda(program_id, authority_account.key);
 
     // Verify that the stake pool account is the correct one
@@ -88,6 +89,7 @@ pub fn process_winners(
                 winner.amount,
                 winner.tickets.clone(),
                 winner.proof.clone(),
+                winner.ticket_indices.clone(),
             )
         })
         .collect()

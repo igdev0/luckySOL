@@ -87,13 +87,6 @@ pub fn process_winners(
             let account_info = accounts
                 .find(|account| account.key == &winner.address)
                 .expect("Unable to find the account in the list");
-
-            msg!("Winner address: {}", winner.address);
-            msg!("Winner amount: {}", winner.amount);
-            msg!("Winner tickets: {:?}", winner.tickets);
-            msg!("Winner proof: {:?}", winner.proof);
-            msg!("Winner ticket indices: {:?}", winner.ticket_indices);
-
             process_winner(
                 stake_pool_account,
                 account_info,

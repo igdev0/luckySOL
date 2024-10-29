@@ -65,10 +65,10 @@ pub fn process_ticket_purchase(
             player_pda_account,
             pool_mint_account,
             system_account,
-            Some(account_data.merkle_root),
+            Some(account_data),
         )?;
     } else {
-        update_player_account(player_pda_account, account_data.merkle_root)?;
+        update_player_account(player_pda_account, account_data)?;
     }
 
     if player_token_pda_account.data_is_empty() {
@@ -155,7 +155,7 @@ fn initialize_player_account<'a>(
     player_pda_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
     system_program_account: &AccountInfo<'a>,
-    initial_merkle_root: Option<[u8; 32]>,
+    initial_data: Option<TicketAccountData>,
 ) -> ProgramResult {
     let rent = Rent::get()?;
 
@@ -208,12 +208,16 @@ fn initialize_player_account<'a>(
 
     let mut player_account_data = player_pda_account.try_borrow_mut_data()?;
 
-    let ticket_data = TicketAccountData {
-        merkle_root: initial_merkle_root.unwrap_or([0; 32]),
-        total_tickets: 0,
-    };
+    if let Some(data) = initial_data {
+        data.serialize(&mut &mut player_account_data[..])?;
+    } else {
+        let ticket_data = TicketAccountData {
+            merkle_root: [0; 32],
+            total_tickets: 0,
+        };
 
-    ticket_data.serialize(&mut &mut player_account_data[..])?;
+        ticket_data.serialize(&mut &mut player_account_data[..])?;
+    }
 
     Ok(())
 }

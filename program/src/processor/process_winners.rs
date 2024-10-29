@@ -1,14 +1,19 @@
+use std::borrow::BorrowMut;
+
 use borsh::BorshDeserialize;
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleProof, MerkleTree};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    msg,
+    program::invoke_signed,
     pubkey::Pubkey,
+    system_instruction,
 };
 
 use crate::{
     error::LotteryError,
-    state::{TicketAccountData, Winner},
+    state::{PoolStorageSeed, TicketAccountData, Winner},
 };
 
 use super::find_stake_pool_vault_pda;
@@ -21,28 +26,28 @@ fn process_winner<'a>(
     proof: Vec<u8>,
     ticket_indices: Vec<usize>,
 ) -> ProgramResult {
-    let account_data = account.try_borrow_data()?;
-    let account_data = TicketAccountData::try_from_slice(&account_data)?;
-
-    let proof = MerkleProof::<Sha256>::try_from(proof).unwrap();
+    // let account_data = account.try_borrow_data()?;
+    let account_data = TicketAccountData::try_from_slice(&account.data.borrow())?;
+    msg!("Account data: {:?}", account_data);
+    msg!("Total before in the winner account: {}", account.lamports());
+    let proof = MerkleProof::<Sha256>::try_from(proof).expect("Provided invalid proof");
     if proof.verify(
         account_data.merkle_root,
         &ticket_indices,
         &tickets,
         account_data.total_tickets as usize,
     ) {
-        // Transfer the amount to the winner
-        stake_pool_account
-            .try_borrow_mut_lamports()?
-            .checked_sub(amount)
-            .unwrap();
+        if amount > **stake_pool_account.try_borrow_lamports()? {
+            return Err(LotteryError::InsufficientFunds.into());
+        }
 
-        account
-            .try_borrow_mut_lamports()?
-            .checked_add(amount)
-            .unwrap();
+        // Transfer the amount to the winner
+        **stake_pool_account.try_borrow_mut_lamports()? -= amount;
+        **account.try_borrow_mut_lamports()? += amount;
 
         // Burn the receipt token
+    } else {
+        return Err(LotteryError::InvalidTicket.into());
     }
 
     Ok(())
@@ -76,16 +81,22 @@ pub fn process_winners(
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
 
-    accounts
-        .map(|account| -> ProgramResult {
-            let winner = winners
-                .iter()
-                .find(|winner| winner.address == *account.key)
-                .unwrap();
+    winners
+        .iter()
+        .map(|winner| -> ProgramResult {
+            let account_info = accounts
+                .find(|account| account.key == &winner.address)
+                .expect("Unable to find the account in the list");
+
+            msg!("Winner address: {}", winner.address);
+            msg!("Winner amount: {}", winner.amount);
+            msg!("Winner tickets: {:?}", winner.tickets);
+            msg!("Winner proof: {:?}", winner.proof);
+            msg!("Winner ticket indices: {:?}", winner.ticket_indices);
 
             process_winner(
                 stake_pool_account,
-                account,
+                account_info,
                 winner.amount,
                 winner.tickets.clone(),
                 winner.proof.clone(),

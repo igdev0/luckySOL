@@ -197,13 +197,14 @@ pub fn find_stake_pool_vault_pda(
 
 pub fn update_player_account<'a>(
     player_pda_account: &AccountInfo<'a>,
-    new_merkle_root: [u8; 32],
+    data: TicketAccountData,
 ) -> ProgramResult {
     let mut player_account_data = player_pda_account.try_borrow_mut_data()?;
 
     let mut ticket_data = TicketAccountData::try_from_slice(&player_account_data)?;
 
-    ticket_data.merkle_root = new_merkle_root;
+    ticket_data.merkle_root = data.merkle_root;
+    ticket_data.total_tickets = data.total_tickets;
 
     ticket_data.serialize(&mut &mut player_account_data[..])?;
 

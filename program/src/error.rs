@@ -17,6 +17,8 @@ pub enum LotteryError {
     InvalidPlayerPdaAccount,
     #[error("The authority must signn the transaction")]
     AuthorityMustSign,
+    #[error("Invalid ticket")]
+    InvalidTicket,
 }
 
 impl From<LotteryError> for ProgramError {

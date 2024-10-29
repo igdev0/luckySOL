@@ -3,7 +3,6 @@ use rs_merkle::{algorithms::Sha256, MerkleProof};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    msg,
     pubkey::Pubkey,
 };
 

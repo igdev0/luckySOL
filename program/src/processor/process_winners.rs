@@ -22,11 +22,10 @@ fn process_winner<'a>(
     proof: Vec<u8>,
     ticket_indices: Vec<usize>,
 ) -> ProgramResult {
-    // let account_data = account.try_borrow_data()?;
     let account_data = TicketAccountData::try_from_slice(&account.data.borrow())?;
-    msg!("Account data: {:?}", account_data);
-    msg!("Total before in the winner account: {}", account.lamports());
     let proof = MerkleProof::<Sha256>::try_from(proof).expect("Provided invalid proof");
+
+    // Verify inclusion of the ticket in the merkle tree
     if proof.verify(
         account_data.merkle_root,
         &ticket_indices,
@@ -41,7 +40,8 @@ fn process_winner<'a>(
         **stake_pool_account.try_borrow_mut_lamports()? -= amount;
         **account.try_borrow_mut_lamports()? += amount;
 
-        // Burn the receipt token
+        // @todo:
+        // - Burn the receipt token
     } else {
         return Err(LotteryError::InvalidTicket.into());
     }

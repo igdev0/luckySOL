@@ -14,11 +14,14 @@ pub enum LotoInstruction {
 pub struct TicketAccountData {
     // The merkle root of the ticket stored offchain
     pub merkle_root: [u8; 32],
+    pub total_tickets: u64,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct Winner {
     pub amount: u64,
+    pub proof: Vec<u8>, // The proof bytes
+    pub ticket_indices: Vec<usize>,
     pub tickets: Vec<[u8; 32]>,
     pub address: Pubkey,
 }

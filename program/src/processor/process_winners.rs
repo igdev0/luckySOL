@@ -1,11 +1,10 @@
 use borsh::BorshDeserialize;
+use rs_merkle::{algorithms::Sha256, Hasher, MerkleProof, MerkleTree};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     pubkey::Pubkey,
 };
-
-use rs_merkle::{Hasher, MerkleProof, MerkleTree};
 
 use crate::{
     error::LotteryError,
@@ -19,17 +18,32 @@ fn process_winner<'a>(
     account: &AccountInfo<'a>,
     amount: u64,
     tickets: Vec<[u8; 32]>,
+    proof: Vec<u8>,
+    ticket_indices: Vec<usize>,
 ) -> ProgramResult {
     let account_data = account.try_borrow_data()?;
     let account_data = TicketAccountData::try_from_slice(&account_data)?;
-    // account_data.merkle_root
-    account_data.merkle_root;
 
-    // let proof_hashes = tickets.iter().map(|ticket| Sha256::hash(ticket)).collect::<Vec<[u8; 32]>();
-    // 1. Validate ticket correctness
-    // let merkle_proof = MerkleProof::new(&[proof_hashes])
+    let proof = MerkleProof::<Sha256>::try_from(proof).unwrap();
+    if proof.verify(
+        account_data.merkle_root,
+        &ticket_indices,
+        &tickets,
+        account_data.total_tickets as usize,
+    ) {
+        // Transfer the amount to the winner
+        stake_pool_account
+            .try_borrow_mut_lamports()?
+            .checked_sub(amount)
+            .unwrap();
 
-    // 2. Transfer the amount to the winner
+        account
+            .try_borrow_mut_lamports()?
+            .checked_add(amount)
+            .unwrap();
+
+        // Burn the receipt token
+    }
 
     Ok(())
 }
@@ -73,6 +87,7 @@ pub fn process_winners(
                 account,
                 winner.amount,
                 winner.tickets.clone(),
+                winner.proof.clone(),
             )
         })
         .collect()

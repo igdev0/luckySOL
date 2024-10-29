@@ -1,20 +1,18 @@
 mod helpers;
 use borsh::BorshDeserialize;
 use helpers::initialize_stake_pool_tx;
+
 use solana_lottery_program::{
     processor::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::LotoInstruction,
+    state::{LotoInstruction, TicketAccountData, Winner},
 };
 use solana_program_test::*;
-use solana_sdk::{
-    instruction::{AccountMeta, Instruction},
-    program_pack::Pack,
-    signer::Signer,
-    transaction::Transaction,
-};
+use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
+
+use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
 #[tokio::test]
 async fn initialize_pool() {
@@ -74,6 +72,7 @@ async fn ticket_purchase() {
     let ticket_data =
         LotoInstruction::PurchaseTicket(solana_lottery_program::state::TicketAccountData {
             merkle_root: [0; 32],
+            total_tickets: 1,
         });
     let (player_pda_address, ..) =
         find_player_pda_account(&solana_lottery_program::ID, &player.pubkey());
@@ -128,6 +127,7 @@ async fn ticket_purchase() {
     let ticket_data =
         LotoInstruction::PurchaseTicket(solana_lottery_program::state::TicketAccountData {
             merkle_root: [1; 32],
+            total_tickets: 2,
         });
     let new_transaction = helpers::purchase_ticket_tx(
         &solana_lottery_program::ID,
@@ -195,25 +195,65 @@ async fn select_winners() {
         .await
         .expect("Unable to process data");
 
-    let winners = vec![
-        player.pubkey(),
-        player.pubkey(),
-        player.pubkey(),
-        player.pubkey(),
-        player.pubkey(),
-    ];
+    let player_pda_account = find_player_pda_account(&solana_lottery_program::ID, &player.pubkey());
+    let player_token_pda_account =
+        find_player_token_pda_account(&solana_lottery_program::ID, &player.pubkey());
 
-    let instruction_data = LotoInstruction::SelectWinnersAndAirdrop(winners);
+    let tickets = vec!["0", "1", "3", "6", "2", "6"];
+    let ticket_hashes: Vec<[u8; 32]> = tickets.iter().map(|t| Sha256::hash(t.as_bytes())).collect();
+    let indices_to_prove = vec![4, 5]; // two winning tickets
+    let merkle_tree = MerkleTree::<Sha256>::from_leaves(&ticket_hashes);
+    let merkle_root = merkle_tree.root().expect("unable to get the root");
 
-    let accounts = vec![AccountMeta::new(pool_authority.pubkey(), true)];
+    let tx = helpers::purchase_ticket_tx(
+        &solana_lottery_program::ID,
+        &pool_authority,
+        &player,
+        player_pda_account.0,
+        player_token_pda_account.0,
+        pool_vault_account,
+        pool_mint_account,
+        recent_blockhash,
+        &LotoInstruction::PurchaseTicket(TicketAccountData {
+            merkle_root,
+            total_tickets: tickets.len() as u64,
+        }),
+    );
 
-    let instr =
-        Instruction::new_with_borsh(solana_lottery_program::ID, &instruction_data, accounts);
+    client
+        .process_transaction_with_commitment(
+            tx,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .expect("Unable to process data");
 
-    let tx = Transaction::new_signed_with_payer(
-        &[instr],
-        Some(&pool_authority.pubkey()),
-        &[&pool_authority],
+    let player_token_account = client
+        .get_account(player_pda_account.0)
+        .await
+        .unwrap()
+        .unwrap();
+    let previous_lamports = player_token_account.lamports;
+
+    // Process the winners
+
+    let proof = merkle_tree.proof(&indices_to_prove);
+    let proof_bytes = proof.to_bytes();
+
+    let winners_instruction_data = vec![Winner {
+        amount: 100_000_000,
+        address: player_pda_account.0,
+        tickets: indices_to_prove.iter().map(|&i| ticket_hashes[i]).collect(),
+        proof: proof_bytes,
+        ticket_indices: indices_to_prove,
+    }];
+
+    let winner_accounts = vec![AccountMeta::new(player_pda_account.0, false)];
+
+    let tx = helpers::process_winners_tx(
+        &pool_authority,
+        winners_instruction_data,
+        winner_accounts,
         recent_blockhash,
     );
 
@@ -224,4 +264,17 @@ async fn select_winners() {
         )
         .await
         .expect("Unable to process data");
+
+    let player_token_account = client
+        .get_account(player_pda_account.0)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        player_token_account.lamports,
+        100_000_000 + previous_lamports
+    );
+
+    // let unpacked = spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
 }

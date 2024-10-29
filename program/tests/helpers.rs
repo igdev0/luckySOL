@@ -1,27 +1,20 @@
-use std::ops::Deref;
-
 use solana_lottery_program::{
     processor::{find_stake_pool_mint_pda, find_stake_pool_vault_pda},
-    state::{LotoInstruction, PoolStorageSeed},
+    state::{LotoInstruction, Winner},
     ID,
 };
 use solana_program_test::ProgramTest;
 use solana_program_test::*;
 use solana_sdk::{
     account::Account,
-    commitment_config::CommitmentLevel,
     hash::Hash,
     instruction::{AccountMeta, Instruction},
-    program_error::ProgramError,
-    program_pack::Pack,
     pubkey::Pubkey,
     signature::Keypair,
     signer::Signer,
     system_program, sysvar,
     transaction::Transaction,
 };
-
-type Res<T> = Result<T, ProgramError>;
 
 pub async fn setup() -> (BanksClient, Keypair, solana_sdk::hash::Hash, Keypair) {
     let mut program = ProgramTest::new(
@@ -101,6 +94,39 @@ pub fn purchase_ticket_tx(
         &[instruction],
         Some(&player.pubkey()),
         &[&player],
+        recent_blockhash,
+    )
+}
+
+pub fn process_winners_tx(
+    pool_authority: &Keypair,
+    winners_instruction_data: Vec<Winner>,
+    winners_accounts: Vec<AccountMeta>,
+    recent_blockhash: Hash,
+) -> Transaction {
+    let (pool_mint_account, ..) =
+        find_stake_pool_mint_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+    let (pool_vault_account, ..) =
+        find_stake_pool_vault_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+
+    let instruction_data = LotoInstruction::SelectWinnersAndAirdrop(winners_instruction_data);
+    let mut accounts = vec![
+        AccountMeta::new(pool_authority.pubkey(), true),
+        AccountMeta::new(pool_vault_account, false),
+        AccountMeta::new(pool_mint_account, false),
+    ];
+
+    winners_accounts.iter().for_each(|account| {
+        accounts.push(account.clone());
+    });
+
+    let instruction =
+        Instruction::new_with_borsh(solana_lottery_program::ID, &instruction_data, accounts);
+
+    Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&pool_authority.pubkey()),
+        &[&pool_authority],
         recent_blockhash,
     )
 }

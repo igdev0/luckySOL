@@ -270,7 +270,7 @@ fn initialize_player_token_account<'a>(
         &spl_token_2022::id(),
         &player_token_pda_account.key,
         &mint_account.key,
-        &player_token_pda_account.key,
+        &mint_account.key,
     )?;
 
     let mut seed_ref = player_account_seed

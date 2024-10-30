@@ -3,6 +3,7 @@ use rs_merkle::{algorithms::Sha256, MerkleProof};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    program::invoke,
     pubkey::Pubkey,
 };
 
@@ -14,6 +15,9 @@ use crate::{
 use super::find_stake_pool_vault_pda;
 
 fn process_winner<'a>(
+    pool_authority: &AccountInfo<'a>,
+    player_token_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
     stake_pool_account: &AccountInfo<'a>,
     account: &AccountInfo<'a>,
     amount: u64,
@@ -41,6 +45,25 @@ fn process_winner<'a>(
 
         // @todo:
         // - Burn the receipt token
+
+        let burn_instr = spl_token_2022::instruction::burn_checked(
+            &spl_token_2022::ID,
+            &player_token_account.key,
+            &mint_account.key,
+            pool_authority.key,
+            &[],
+            1,
+            0,
+        )?;
+
+        invoke(
+            &burn_instr,
+            &[
+                player_token_account.clone(),
+                mint_account.clone(),
+                pool_authority.clone(),
+            ],
+        )?;
     } else {
         return Err(LotteryError::InvalidTicket.into());
     }
@@ -58,6 +81,8 @@ pub fn process_winners(
     let authority_account = next_account_info(&mut accounts)?;
 
     let stake_pool_account = next_account_info(&mut accounts)?;
+
+    let mint_account = next_account_info(&mut accounts)?;
 
     // Verify that the authority is the signer of the transaction
     if !authority_account.is_signer {
@@ -82,7 +107,14 @@ pub fn process_winners(
             let account_info = accounts
                 .find(|account| account.key == &winner.address)
                 .expect("Unable to find the account in the list");
+            let player_token_account = accounts
+                .find(|account| account.key == &winner.token_account)
+                .expect("Unable to find the token account in the list");
+
             process_winner(
+                authority_account,
+                player_token_account,
+                mint_account,
                 stake_pool_account,
                 account_info,
                 winner.amount,

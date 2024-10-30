@@ -25,6 +25,7 @@ pub struct Winner {
     pub ticket_indices: Vec<usize>,
     pub tickets: Vec<[u8; 32]>,
     pub address: Pubkey,
+    pub token_account: Pubkey,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]

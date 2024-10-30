@@ -244,13 +244,18 @@ async fn can_select_winners_and_widthdraw_prize() {
 
     let winners_instruction_data = vec![Winner {
         amount: 100_000_000,
+        token_account: player_token_pda_account.0,
         address: player_pda_account.0,
         tickets: indices_to_prove.iter().map(|&i| ticket_hashes[i]).collect(),
         proof: proof_bytes,
         ticket_indices: indices_to_prove,
     }];
 
-    let winner_accounts = vec![AccountMeta::new(player_pda_account.0, false)];
+    let winner_accounts = vec![
+        AccountMeta::new(player_pda_account.0, false),
+        AccountMeta::new(player_token_pda_account.0, false),
+        AccountMeta::new(spl_token_2022::ID, false),
+    ];
 
     let tx = helpers::process_winners_tx(
         &pool_authority,
@@ -279,8 +284,17 @@ async fn can_select_winners_and_widthdraw_prize() {
     );
 
     let player_total_lamports = client.get_balance(player.pubkey()).await.unwrap();
+    let player_token_account = client
+        .get_account(player_token_pda_account.0)
+        .await
+        .unwrap()
+        .unwrap();
 
-    // Withdraw the prize
+    let player_token_account_unpacked =
+        spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
+
+    assert_eq!(player_token_account_unpacked.amount, 0);
+
     let tx =
         helpers::process_withdraw_tx(&player, player_pda_account.0, 100_000_000, recent_blockhash);
 

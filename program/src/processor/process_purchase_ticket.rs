@@ -74,6 +74,7 @@ pub fn process_ticket_purchase(
     if player_token_pda_account.data_is_empty() {
         initialize_player_token_account(
             program_id,
+            pool_authority_account,
             player_account,
             player_token_pda_account,
             pool_mint_account,
@@ -225,6 +226,7 @@ fn initialize_player_account<'a>(
 // This function is be repsonsible for creating a token 2022 account for the player.
 fn initialize_player_token_account<'a>(
     program_id: &Pubkey,
+    pool_authority_account: &AccountInfo<'a>,
     player_account: &AccountInfo<'a>,
     player_token_pda_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
@@ -270,7 +272,7 @@ fn initialize_player_token_account<'a>(
         &spl_token_2022::id(),
         &player_token_pda_account.key,
         &mint_account.key,
-        &mint_account.key,
+        &pool_authority_account.key,
     )?;
 
     let mut seed_ref = player_account_seed
@@ -287,6 +289,7 @@ fn initialize_player_token_account<'a>(
             player_token_pda_account.clone(),
             mint_account.clone(),
             // player_account.clone(),
+            pool_authority_account.clone(),
             rent_account.clone(),
             // program_account.clone(),
         ],

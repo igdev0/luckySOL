@@ -130,3 +130,26 @@ pub fn process_winners_tx(
         recent_blockhash,
     )
 }
+
+pub fn process_withdraw_tx(
+    player_account: &Keypair,
+    player_pda_account: Pubkey,
+    amount: u64,
+    recent_blockhash: Hash,
+) -> Transaction {
+    let instruction_data = LotoInstruction::Withdraw(amount);
+    let accounts = vec![
+        AccountMeta::new(player_account.pubkey(), true),
+        AccountMeta::new(player_pda_account, false),
+    ];
+
+    let instruction =
+        Instruction::new_with_borsh(solana_lottery_program::ID, &instruction_data, accounts);
+
+    Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&player_account.pubkey()),
+        &[&player_account],
+        recent_blockhash,
+    )
+}

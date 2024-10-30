@@ -10,7 +10,9 @@ use solana_lottery_program::{
     state::{LotoInstruction, TicketAccountData, Winner},
 };
 use solana_program_test::*;
-use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
+use solana_sdk::{
+    fee_calculator::FeeCalculator, instruction::AccountMeta, program_pack::Pack, signer::Signer,
+};
 
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
@@ -174,7 +176,7 @@ async fn ticket_purchase() {
 }
 
 #[tokio::test]
-async fn select_winners() {
+async fn can_select_winners_and_widthdraw_prize() {
     let (mut client, pool_authority, recent_blockhash, player) = helpers::setup().await;
 
     let (pool_mint_account, ..) =
@@ -276,5 +278,27 @@ async fn select_winners() {
         100_000_000 + previous_lamports
     );
 
-    // let unpacked = spl_token_2022::state::Account::unpack(&player_token_account.data).unwrap();
+    let player_total_lamports = client.get_balance(player.pubkey()).await.unwrap();
+
+    // Withdraw the prize
+    let tx =
+        helpers::process_withdraw_tx(&player, player_pda_account.0, 100_000_000, recent_blockhash);
+
+    let tx_cost = client
+        .get_fee_for_message(tx.message.clone())
+        .await
+        .unwrap()
+        .unwrap();
+    client
+        .process_transaction_with_commitment(
+            tx,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        client.get_balance(player.pubkey()).await.unwrap(),
+        100_000_000 + (player_total_lamports - tx_cost)
+    );
 }

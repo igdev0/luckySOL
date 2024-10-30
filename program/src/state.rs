@@ -5,6 +5,7 @@ use solana_program::pubkey::Pubkey;
 pub enum LotoInstruction {
     InitializePool(u64),
     Deposit(u64),
+    Withdraw(u64),
     PurchaseTicket(TicketAccountData),
     SelectWinnersAndAirdrop(Vec<Winner>),
     ClosePlayerAccount,

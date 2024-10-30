@@ -5,6 +5,7 @@ mod process_deposit;
 mod process_pool_initialization;
 mod process_purchase_ticket;
 mod process_winners;
+mod process_withdraw;
 
 pub use process_pool_initialization::find_player_pda_account;
 pub use process_pool_initialization::find_stake_pool_mint_pda;
@@ -34,6 +35,9 @@ pub fn processor(
             process_pool_initialization(program_id, accounts, amount)
         }
         LotoInstruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
+        LotoInstruction::Withdraw(amount) => {
+            process_withdraw::process_withdraw(program_id, accounts, amount)
+        }
         LotoInstruction::PurchaseTicket(account_data) => {
             process_ticket_purchase(program_id, accounts, account_data)
         }

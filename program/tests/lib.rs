@@ -313,4 +313,26 @@ async fn can_select_winners_and_widthdraw_prize() {
         client.get_balance(player.pubkey()).await.unwrap(),
         100_000_000 + (player_total_lamports - tx_cost)
     );
+
+    let tx = helpers::close_account_tx(
+        &player,
+        player_pda_account.0,
+        player_token_pda_account.0,
+        &pool_authority.pubkey(),
+        recent_blockhash,
+    );
+    client
+        .process_transaction_with_commitment(
+            tx,
+            solana_sdk::commitment_config::CommitmentLevel::Finalized,
+        )
+        .await
+        .unwrap();
+
+    let new_player_pda_account = client
+        .get_account(player_pda_account.0)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(new_player_pda_account.lamports, 0);
 }

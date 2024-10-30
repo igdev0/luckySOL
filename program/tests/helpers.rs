@@ -153,3 +153,30 @@ pub fn process_withdraw_tx(
         recent_blockhash,
     )
 }
+
+pub fn close_account_tx(
+    player: &Keypair,
+    player_pda_address: Pubkey,
+    player_token_pda_address: Pubkey,
+    pool_authority: &Pubkey,
+    recent_blockhash: Hash,
+) -> Transaction {
+    let instruction_data = LotoInstruction::ClosePlayerAccount;
+    let accounts = vec![
+        AccountMeta::new(player.pubkey(), true),
+        AccountMeta::new(player_pda_address, false),
+        AccountMeta::new(player_token_pda_address, false),
+        AccountMeta::new(*pool_authority, false),
+        AccountMeta::new_readonly(spl_token_2022::id(), false),
+    ];
+
+    let instruction =
+        Instruction::new_with_borsh(solana_lottery_program::ID, &instruction_data, accounts);
+
+    Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&player.pubkey()),
+        &[&player],
+        recent_blockhash,
+    )
+}

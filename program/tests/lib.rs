@@ -10,9 +10,7 @@ use solana_lottery_program::{
     state::{LotoInstruction, TicketAccountData, Winner},
 };
 use solana_program_test::*;
-use solana_sdk::{
-    fee_calculator::FeeCalculator, instruction::AccountMeta, program_pack::Pack, signer::Signer,
-};
+use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
 
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 

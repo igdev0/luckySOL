@@ -52,7 +52,6 @@ pub fn process_pool_initialization(
         program_id,
         pool_authority_account,
         mint_account,
-        mint_account,
         rent_account,
         system_program_account,
         spl_token_2022_account,
@@ -112,7 +111,6 @@ fn initialize_pool_mint<'a>(
     program_id: &Pubkey,
     pool_authority_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
-    mint_authority_account: &AccountInfo<'a>,
     rent_account: &AccountInfo<'a>,
     system_program_account: &AccountInfo<'a>,
     spl_token_2022_account: &AccountInfo<'a>,
@@ -159,7 +157,7 @@ fn initialize_pool_mint<'a>(
     let token_init_instruction = spl_token_2022::instruction::initialize_mint(
         &spl_token_2022::ID,
         &mint_account.key,
-        &mint_authority_account.key,
+        &mint_account.key,
         None,
         0,
     )?;

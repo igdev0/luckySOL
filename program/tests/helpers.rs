@@ -85,7 +85,6 @@ pub fn purchase_ticket_tx(
         AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
-        AccountMeta::new_readonly(solana_lottery_program::id(), false),
     ];
 
     let instruction = Instruction::new_with_borsh(*program_id, &ticket_data, accounts);
@@ -159,6 +158,7 @@ pub fn close_account_tx(
     player_pda_address: Pubkey,
     player_token_pda_address: Pubkey,
     pool_authority: &Pubkey,
+    mint_account: &Pubkey,
     recent_blockhash: Hash,
 ) -> Transaction {
     let instruction_data = LotoInstruction::ClosePlayerAccount;
@@ -167,6 +167,7 @@ pub fn close_account_tx(
         AccountMeta::new(player_pda_address, false),
         AccountMeta::new(player_token_pda_address, false),
         AccountMeta::new(*pool_authority, false),
+        AccountMeta::new_readonly(*mint_account, false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),
     ];
 

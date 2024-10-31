@@ -3,18 +3,20 @@ use rs_merkle::{algorithms::Sha256, MerkleProof};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    program::invoke,
+    program::invoke_signed,
     pubkey::Pubkey,
 };
 
 use crate::{
     error::LotteryError,
-    state::{TicketAccountData, Winner},
+    processor::find_stake_pool_mint_pda,
+    state::{PoolStorageSeed, TicketAccountData, Winner},
 };
 
 use super::find_stake_pool_vault_pda;
 
 fn process_winner<'a>(
+    program_id: &Pubkey,
     pool_authority: &AccountInfo<'a>,
     player_token_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
@@ -45,24 +47,26 @@ fn process_winner<'a>(
 
         // @todo:
         // - Burn the receipt token
-
         let burn_instr = spl_token_2022::instruction::burn_checked(
             &spl_token_2022::ID,
             &player_token_account.key,
             &mint_account.key,
-            pool_authority.key,
+            &mint_account.key,
             &[],
             1,
             0,
         )?;
 
-        invoke(
+        let auth_bump = find_stake_pool_mint_pda(program_id, pool_authority.key).1;
+
+        invoke_signed(
             &burn_instr,
-            &[
-                player_token_account.clone(),
-                mint_account.clone(),
-                pool_authority.clone(),
-            ],
+            &[player_token_account.clone(), mint_account.clone()],
+            &[&[
+                PoolStorageSeed::ReceiptMint.as_bytes(),
+                pool_authority.key.as_ref(),
+                &[auth_bump],
+            ]],
         )?;
     } else {
         return Err(LotteryError::InvalidTicket.into());
@@ -112,6 +116,7 @@ pub fn process_winners(
                 .expect("Unable to find the token account in the list");
 
             process_winner(
+                program_id,
                 authority_account,
                 player_token_account,
                 mint_account,

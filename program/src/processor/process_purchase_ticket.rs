@@ -52,8 +52,6 @@ pub fn process_ticket_purchase(
 
     let system_account = next_account_info(&mut accounts)?;
 
-    let program_account = next_account_info(&mut accounts)?;
-
     if !player_account.is_signer {
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
@@ -78,7 +76,6 @@ pub fn process_ticket_purchase(
             player_account,
             player_token_pda_account,
             pool_mint_account,
-            &program_account.clone(),
             &rent_account.clone(),
         )?;
     }
@@ -230,7 +227,6 @@ fn initialize_player_token_account<'a>(
     player_account: &AccountInfo<'a>,
     player_token_pda_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
-    program_account: &AccountInfo<'a>,
     rent_account: &AccountInfo<'a>,
 ) -> ProgramResult {
     let rent = Rent::get()?;
@@ -261,7 +257,6 @@ fn initialize_player_token_account<'a>(
             player_account.clone(),
             player_token_pda_account.clone(),
             rent_account.clone(),
-            program_account.clone(),
         ],
         &[&seed_ref[..]],
     )?;
@@ -272,7 +267,7 @@ fn initialize_player_token_account<'a>(
         &spl_token_2022::id(),
         &player_token_pda_account.key,
         &mint_account.key,
-        &pool_authority_account.key,
+        &mint_account.key,
     )?;
 
     let mut seed_ref = player_account_seed
@@ -285,13 +280,10 @@ fn initialize_player_token_account<'a>(
     invoke_signed(
         &init_account_instr,
         &[
-            // player_pda_account.clone(),
             player_token_pda_account.clone(),
             mint_account.clone(),
-            // player_account.clone(),
             pool_authority_account.clone(),
             rent_account.clone(),
-            // program_account.clone(),
         ],
         &[&seed_ref[..]],
     )?;

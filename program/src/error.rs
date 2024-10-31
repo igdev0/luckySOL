@@ -25,6 +25,8 @@ pub enum LotteryError {
     InvalidTicket,
     #[error("Invalid owner")]
     InvalidOwner,
+    #[error("Invalid program account")]
+    InvalidProramAccount,
 }
 
 impl From<LotteryError> for ProgramError {

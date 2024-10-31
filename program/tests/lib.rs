@@ -319,6 +319,7 @@ async fn can_select_winners_and_widthdraw_prize() {
         player_pda_account.0,
         player_token_pda_account.0,
         &pool_authority.pubkey(),
+        &pool_mint_account,
         recent_blockhash,
     );
     client
@@ -329,10 +330,12 @@ async fn can_select_winners_and_widthdraw_prize() {
         .await
         .unwrap();
 
-    let new_player_pda_account = client
-        .get_account(player_pda_account.0)
+    let updated_player_pda_account = client.get_account(player_pda_account.0).await.unwrap();
+    assert_eq!(updated_player_pda_account, None);
+    let updated_player_pda_token_account = client
+        .get_account(player_token_pda_account.0)
         .await
-        .unwrap()
         .unwrap();
-    assert_eq!(new_player_pda_account.lamports, 0);
+
+    assert_eq!(updated_player_pda_token_account, None);
 }

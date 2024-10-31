@@ -3,7 +3,7 @@ use solana_program::pubkey::Pubkey;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
 pub enum LotoInstruction {
-    InitializePool(u64),
+    InitializePool(PoolStorageData),
     Deposit(u64),
     Withdraw(u64),
     PurchaseTicket(TicketAccountData),
@@ -29,9 +29,10 @@ pub struct Winner {
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
-pub struct PoolStorageAccount {
-    // The recipe token, used to send back a recipe depending on the amount of tickets bought, 1 token per ticket.
-    pub receipt_mint: Pubkey,
+pub struct PoolStorageData {
+    pub ticket_price: u64, // in lamports
+    pub draft_count: u64,
+    pub initial_amout: u64,
 }
 
 pub enum PoolStorageSeed {

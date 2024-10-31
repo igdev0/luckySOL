@@ -1,6 +1,6 @@
 use solana_lottery_program::{
     processor::{find_stake_pool_mint_pda, find_stake_pool_vault_pda},
-    state::{LotoInstruction, Winner},
+    state::{LotoInstruction, PoolStorageData, Winner},
     ID,
 };
 use solana_program_test::ProgramTest;
@@ -43,7 +43,13 @@ pub fn initialize_stake_pool_tx(
     let (pool_mint_account, ..) = find_stake_pool_mint_pda(&program_id, &pool_authority.pubkey());
     let (pool_vault_account, ..) = find_stake_pool_vault_pda(&program_id, &pool_authority.pubkey());
 
-    let instruction_data = LotoInstruction::InitializePool(100_000_500);
+    let pool_storage_data = PoolStorageData {
+        ticket_price: 100_000_500,
+        draft_count: 0,
+        initial_amout: 100_000_500,
+    };
+
+    let instruction_data = LotoInstruction::InitializePool(pool_storage_data);
     let accounts = vec![
         AccountMeta::new(pool_authority.pubkey(), true),
         AccountMeta::new(pool_vault_account, false),

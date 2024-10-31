@@ -1,4 +1,4 @@
-use borsh::BorshSerialize;
+use borsh::{BorshDeserialize, BorshSerialize};
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -15,12 +15,10 @@ use solana_program::program_pack::Pack;
 
 use crate::{
     error::LotteryError,
-    state::{PoolStorageSeed, TicketAccountData},
+    state::{PoolStorageData, PoolStorageSeed, TicketAccountData},
 };
 
 use super::{find_player_pda_account, find_stake_pool_mint_pda, update_player_account};
-
-pub const TICKET_PRICE: u64 = 50_000_000; // 0.05 SOL
 
 /// Process the player initialization
 /// This function will create a new account for the player and transfer the ticket price to the stake pool vault.
@@ -56,9 +54,15 @@ pub fn process_ticket_purchase(
         return Err(solana_program::program_error::ProgramError::MissingRequiredSignature);
     }
 
+    let pool_storage =
+        PoolStorageData::deserialize(&mut &**pool_vault_account.try_borrow_mut_data()?)?;
+
+    let PoolStorageData { ticket_price, .. } = pool_storage;
+
     if player_pda_account.data_is_empty() {
         initialize_player_account(
             program_id,
+            ticket_price,
             player_account,
             player_pda_account,
             pool_mint_account,
@@ -81,7 +85,7 @@ pub fn process_ticket_purchase(
     }
 
     let ticket_purchase_instr =
-        system_instruction::transfer(player_account.key, pool_vault_account.key, TICKET_PRICE);
+        system_instruction::transfer(player_account.key, pool_vault_account.key, ticket_price);
 
     invoke(
         &ticket_purchase_instr,
@@ -149,6 +153,7 @@ pub fn find_player_token_pda_account(
 // for the player and initializing it with the ticket data.
 fn initialize_player_account<'a>(
     program_id: &Pubkey,
+    ticket_price: u64,
     player_account: &AccountInfo<'a>,
     player_pda_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
@@ -182,7 +187,7 @@ fn initialize_player_account<'a>(
     let instruction = system_instruction::create_account(
         &player_account.key,
         &player_pda_account_address,
-        minimum_balance + TICKET_PRICE,
+        minimum_balance + ticket_price,
         ticket_account_data_space as u64,
         program_id,
     );

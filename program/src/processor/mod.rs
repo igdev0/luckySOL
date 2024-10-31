@@ -20,7 +20,6 @@ pub use process_deposit::process_deposit;
 
 pub use process_purchase_ticket::find_player_token_pda_account;
 pub use process_purchase_ticket::process_ticket_purchase;
-pub use process_purchase_ticket::TICKET_PRICE;
 
 use crate::state::LotoInstruction;
 
@@ -31,8 +30,8 @@ pub fn processor(
 ) -> ProgramResult {
     let instr = LotoInstruction::try_from_slice(instruction_data)?;
     match instr {
-        LotoInstruction::InitializePool(amount) => {
-            process_pool_initialization(program_id, accounts, amount)
+        LotoInstruction::InitializePool(pool_storage_account) => {
+            process_pool_initialization(program_id, accounts, &pool_storage_account)
         }
         LotoInstruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
         LotoInstruction::Withdraw(amount) => {

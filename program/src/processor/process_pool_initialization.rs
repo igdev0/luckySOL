@@ -1,8 +1,8 @@
 use crate::{
     error::LotteryError,
-    state::{PoolStorageAccount, PoolStorageSeed, TicketAccountData},
+    state::{PoolStorageData, PoolStorageSeed, TicketAccountData},
 };
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::{to_vec, BorshDeserialize, BorshSerialize};
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -19,7 +19,7 @@ use solana_program::program_pack::Pack;
 pub fn process_pool_initialization(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    amount: u64,
+    pool_storage_data: &PoolStorageData,
 ) -> ProgramResult {
     let mut accounts = accounts.into_iter();
 
@@ -45,7 +45,7 @@ pub fn process_pool_initialization(
         pool_authority_account,
         pool_vault_account,
         system_program_account,
-        amount,
+        pool_storage_data,
     )?;
 
     initialize_pool_mint(
@@ -55,7 +55,7 @@ pub fn process_pool_initialization(
         rent_account,
         system_program_account,
         spl_token_2022_account,
-        amount,
+        pool_storage_data.initial_amout,
     )?;
     Ok(())
 }
@@ -65,7 +65,7 @@ fn initialize_pool_vault<'a>(
     pool_authority_account: &AccountInfo<'a>,
     pool_vault_account: &AccountInfo<'a>,
     system_program_account: &AccountInfo<'a>,
-    amount: u64,
+    pool_storage_data: &PoolStorageData,
 ) -> ProgramResult {
     let (pool_vault_address, bump) =
         find_stake_pool_vault_pda(program_id, &pool_authority_account.key);
@@ -76,17 +76,17 @@ fn initialize_pool_vault<'a>(
 
     let rent = Rent::get()?;
 
-    let exempt_balance = rent.minimum_balance(size_of::<PoolStorageAccount>());
+    let exempt_balance = rent.minimum_balance(size_of::<PoolStorageData>());
 
-    if pool_authority_account.lamports() < (exempt_balance + amount) {
+    if pool_authority_account.lamports() < (exempt_balance + pool_storage_data.initial_amout) {
         return Err(LotteryError::InsufficientFunds.into());
     }
 
     let pool_vault_account_instr = system_instruction::create_account(
         &pool_authority_account.key,
         &pool_vault_address,
-        exempt_balance + amount,
-        size_of::<PoolStorageAccount>() as u64,
+        exempt_balance + pool_storage_data.initial_amout,
+        size_of::<PoolStorageData>() as u64,
         &program_id,
     );
 
@@ -103,6 +103,10 @@ fn initialize_pool_vault<'a>(
             &[bump],
         ]],
     )?;
+
+    pool_vault_account
+        .try_borrow_mut_data()?
+        .copy_from_slice(&to_vec(pool_storage_data)?);
 
     Ok(())
 }

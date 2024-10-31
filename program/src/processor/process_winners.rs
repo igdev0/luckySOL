@@ -1,4 +1,4 @@
-use borsh::BorshDeserialize;
+use borsh::{BorshDeserialize, BorshSerialize};
 use rs_merkle::{algorithms::Sha256, MerkleProof};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -10,7 +10,7 @@ use solana_program::{
 use crate::{
     error::LotteryError,
     processor::find_stake_pool_mint_pda,
-    state::{PoolStorageSeed, TicketAccountData, Winner},
+    state::{PoolStorageData, PoolStorageSeed, TicketAccountData, Winner},
 };
 
 use super::find_stake_pool_vault_pda;
@@ -88,6 +88,12 @@ pub fn process_winners(
 
     let mint_account = next_account_info(&mut accounts)?;
 
+    let mut pool_vault_data = pool_vault_account.try_borrow_mut_data()?;
+
+    let mut pool_storage = PoolStorageData::deserialize(&mut &**pool_vault_data)?;
+    pool_storage.draft_count += 1;
+
+    pool_storage.serialize(&mut &mut **pool_vault_data)?;
     // Verify that the authority is the signer of the transaction
     if !authority_account.is_signer {
         return Err(LotteryError::AuthorityMustSign.into());

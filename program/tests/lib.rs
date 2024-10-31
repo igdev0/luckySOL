@@ -7,7 +7,7 @@ use solana_lottery_program::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::{LotoInstruction, TicketAccountData, Winner},
+    state::{LotoInstruction, PoolStorageData, TicketAccountData, Winner},
 };
 use solana_program_test::*;
 use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
@@ -280,6 +280,17 @@ async fn can_select_winners_and_widthdraw_prize() {
         player_token_account.lamports,
         100_000_000 + previous_lamports
     );
+
+    let pool_vault_account = client
+        .get_account(pool_vault_account)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let PoolStorageData { draft_count, .. } =
+        PoolStorageData::deserialize(&mut pool_vault_account.data.as_slice()).unwrap();
+
+    assert_eq!(draft_count, 1);
 
     let player_total_lamports = client.get_balance(player.pubkey()).await.unwrap();
     let player_token_account = client

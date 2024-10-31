@@ -20,7 +20,7 @@ fn process_winner<'a>(
     pool_authority: &AccountInfo<'a>,
     player_token_account: &AccountInfo<'a>,
     mint_account: &AccountInfo<'a>,
-    stake_pool_account: &AccountInfo<'a>,
+    pool_vault_account: &AccountInfo<'a>,
     account: &AccountInfo<'a>,
     amount: u64,
     tickets: Vec<[u8; 32]>,
@@ -37,12 +37,12 @@ fn process_winner<'a>(
         &tickets,
         account_data.total_tickets as usize,
     ) {
-        if amount > **stake_pool_account.try_borrow_lamports()? {
+        if amount > **pool_vault_account.try_borrow_lamports()? {
             return Err(LotteryError::InsufficientFunds.into());
         }
 
         // Transfer the amount to the winner
-        **stake_pool_account.try_borrow_mut_lamports()? -= amount;
+        **pool_vault_account.try_borrow_mut_lamports()? -= amount;
         **account.try_borrow_mut_lamports()? += amount;
 
         // @todo:

@@ -84,7 +84,7 @@ pub fn process_winners(
 
     let authority_account = next_account_info(&mut accounts)?;
 
-    let stake_pool_account = next_account_info(&mut accounts)?;
+    let pool_vault_account = next_account_info(&mut accounts)?;
 
     let mint_account = next_account_info(&mut accounts)?;
 
@@ -94,14 +94,14 @@ pub fn process_winners(
     }
 
     // Verify that the stake pool account is owned by the program
-    if stake_pool_account.owner != program_id {
+    if pool_vault_account.owner != program_id {
         return Err(LotteryError::IncorrectOwner.into());
     }
 
     let (stake_pool_pda, ..) = find_stake_pool_vault_pda(program_id, authority_account.key);
 
     // Verify that the stake pool account is the correct one
-    if stake_pool_pda != *stake_pool_account.key {
+    if stake_pool_pda != *pool_vault_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
 
@@ -120,7 +120,7 @@ pub fn process_winners(
                 authority_account,
                 player_token_account,
                 mint_account,
-                stake_pool_account,
+                pool_vault_account,
                 account_info,
                 winner.amount,
                 winner.tickets.clone(),

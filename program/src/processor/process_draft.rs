@@ -10,7 +10,7 @@ use solana_program::{
 use crate::{
     error::LotteryError,
     processor::find_stake_pool_mint_pda,
-    state::{PoolStorageData, PoolStorageSeed, TicketAccountData, Winner},
+    state::{DraftWinner, PoolStorageData, PoolStorageSeed, TicketAccountData},
 };
 
 use super::find_stake_pool_vault_pda;
@@ -75,10 +75,10 @@ fn process_winner<'a>(
     Ok(())
 }
 
-pub fn process_winners(
+pub fn process_draft(
     program_id: &Pubkey,
     accounts: &Vec<AccountInfo>,
-    winners: Vec<Winner>,
+    draft_winners: Vec<DraftWinner>,
 ) -> ProgramResult {
     let mut accounts = accounts.iter();
 
@@ -111,7 +111,7 @@ pub fn process_winners(
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
 
-    winners
+    draft_winners
         .iter()
         .map(|winner| -> ProgramResult {
             let account_info = accounts

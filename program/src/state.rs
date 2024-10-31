@@ -7,7 +7,7 @@ pub enum LotoInstruction {
     Deposit(u64),
     Withdraw(u64),
     PurchaseTicket(TicketAccountData),
-    SelectWinnersAndAirdrop(Vec<Winner>),
+    SelectWinnersAndAirdrop(Vec<DraftWinner>),
     ClosePlayerAccount,
 }
 
@@ -19,7 +19,7 @@ pub struct TicketAccountData {
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
-pub struct Winner {
+pub struct DraftWinner {
     pub amount: u64,
     pub proof: Vec<u8>, // The proof bytes
     pub ticket_indices: Vec<usize>,

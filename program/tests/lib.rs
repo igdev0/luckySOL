@@ -7,7 +7,7 @@ use solana_lottery_program::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::{LotoInstruction, PoolStorageData, TicketAccountData, Winner},
+    state::{DraftWinner, LotoInstruction, PoolStorageData, TicketAccountData},
 };
 use solana_program_test::*;
 use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
@@ -240,7 +240,7 @@ async fn can_select_winners_and_widthdraw_prize() {
     let proof = merkle_tree.proof(&indices_to_prove);
     let proof_bytes = proof.to_bytes();
 
-    let winners_instruction_data = vec![Winner {
+    let winners_instruction_data = vec![DraftWinner {
         amount: 100_000_000,
         token_account: player_token_pda_account.0,
         address: player_pda_account.0,

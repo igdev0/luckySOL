@@ -1,6 +1,6 @@
 use solana_lottery_program::{
     processor::{find_stake_pool_mint_pda, find_stake_pool_vault_pda},
-    state::{LotoInstruction, PoolStorageData, Winner},
+    state::{DraftWinner, LotoInstruction, PoolStorageData},
     ID,
 };
 use solana_program_test::ProgramTest;
@@ -105,7 +105,7 @@ pub fn purchase_ticket_tx(
 
 pub fn process_winners_tx(
     pool_authority: &Keypair,
-    winners_instruction_data: Vec<Winner>,
+    winners_instruction_data: Vec<DraftWinner>,
     winners_accounts: Vec<AccountMeta>,
     recent_blockhash: Hash,
 ) -> Transaction {

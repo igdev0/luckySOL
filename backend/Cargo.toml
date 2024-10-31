@@ -1,9 +1,0 @@
-[package]
-name = "backend"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-actix = "0.13.5"
-bs58 = "0.5.1"
-rs_merkle = "1.4.2"

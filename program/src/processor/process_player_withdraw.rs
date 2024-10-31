@@ -4,7 +4,7 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-pub fn process_withdraw(
+pub fn process_player_withdraw(
     _program_id: &Pubkey,
     accounts: &[AccountInfo],
     amount: u64,

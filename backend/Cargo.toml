@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.7"
+dotenv = "0.15.0"
 rs_merkle = "1.4.2"
 solana-sdk = "2.1.0"
 sqlx = "0.8.2"

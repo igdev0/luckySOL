@@ -8,6 +8,7 @@ axum = "0.7.7"
 dotenv = "0.15.0"
 rs_merkle = "1.4.2"
 solana-sdk = "2.1.0"
+sqlx = { version = "0.8.2", features = ["runtime-tokio", "mysql"] }
 thiserror = "1.0.66"
 tokio = { version = "1.41.0", features = ["full"] }
 tokio-cron-scheduler = "0.13.0"

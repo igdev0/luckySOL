@@ -1,5 +1,10 @@
 use sqlx::{migrate::MigrateDatabase, Connection, MySql, MySqlConnection};
-use std::{env, error::Error, ops::Deref};
+use std::{
+    env,
+    error::Error,
+    ops::{Deref, DerefMut},
+};
+pub mod ticket;
 
 #[derive(Debug)]
 pub struct Storage(Box<MySqlConnection>);
@@ -39,5 +44,11 @@ impl Deref for Storage {
     type Target = MySqlConnection;
     fn deref(&self) -> &Self::Target {
         &&self.0
+    }
+}
+
+impl DerefMut for Storage {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

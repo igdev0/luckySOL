@@ -5,11 +5,17 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
 import { Repository } from 'typeorm';
 import * as crypto from 'node:crypto';
+import { MerkleTree } from 'merkletreejs';
+
+type TicketCreationResult = {
+  merkle_root: string
+}
+
 @Injectable()
 export class TicketService {
   constructor(@InjectRepository(Ticket) private ticketsRepository: Repository<Ticket>) {
   }
-  async create(createTicketDto: CreateTicketDto) {
+  async create(createTicketDto: CreateTicketDto) : Promise<TicketCreationResult> {
     const entity = this.ticketsRepository.create({
       address: createTicketDto.address,
       lucky_draft: createTicketDto.lucky_draft,
@@ -17,7 +23,28 @@ export class TicketService {
       status: "PendingCreation",
     })
 
-    return await this.ticketsRepository.save(entity);
+    await this.ticketsRepository.save(entity);
+    const merkle_root = await this.getMerkleRoot(createTicketDto.address);
+    return {
+      merkle_root
+    }
+  }
+
+  private async getMerkleRoot(address: string) {
+      const tickets = await this.ticketsRepository.find({
+        where: {
+          address
+        },
+        select: {
+          merkle_hash: true
+        },
+        order: {
+          created_at: "ASC"
+        }
+      })
+
+      const tree = new MerkleTree(tickets.map(item => item.merkle_hash));
+      return tree.getRoot().toString("hex");
   }
 
   private hashTicket(lucky_draft: string) {

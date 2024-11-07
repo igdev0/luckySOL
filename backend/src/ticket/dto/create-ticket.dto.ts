@@ -6,5 +6,5 @@ export class CreateTicketDto {
   @IsString()
   address: string
   @IsJSON({message: "This field has to be JSON"})
-  lucky_draft: string
+  lucky_draft: JSON
 }

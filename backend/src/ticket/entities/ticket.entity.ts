@@ -9,7 +9,7 @@ export class Ticket {
     type: "json",
     nullable: false,
   })
-  lucky_draft: string
+  lucky_draft: JSON
 
   @Column({
     type: "enum",

@@ -3,6 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TicketModule } from './ticket/ticket.module';
+import { Ticket } from './ticket/entities/ticket.entity';
 
 @Module({
   imports: [
@@ -22,9 +24,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
            database: DATABASE_NAME,
            username: DATABASE_USER,
            password: DATABASE_PASSWORD,
+           synchronize: true,
+           entities: [Ticket]
          }
       }
-    })
+    }),
+    TicketModule
   ],
   controllers: [AppController],
   providers: [AppService],

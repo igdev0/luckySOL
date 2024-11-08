@@ -9,9 +9,9 @@
     "build": "rollup -c"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^24.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-typescript": "^10.0.0",
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-typescript": "^12.1.1",
     "rollup": "^3.0.0",
     "rollup-plugin-dts": "^5.0.0",
     "typescript": "^5.0.0"

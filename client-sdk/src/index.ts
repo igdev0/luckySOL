@@ -1,13 +1,16 @@
-import {Connection, Version} from '@solana/web3.js';
+import {DraftWinner} from './instructions.js';
+import {AccountMeta, PublicKey} from '@solana/web3.js';
+import * as borsh from "borsh"
+export function processDraftWinner(amount: bigint, address: PublicKey, proof: Uint8Array, tickets: Uint8Array[], ticketIndices: number[], tokenAccount: PublicKey, ) {
+  const draftWinner = new DraftWinner({
+    amount,
+    address,
+    proof,
+    tickets,
+    ticketIndices,
+    tokenAccount
+  })
+  const serialised = borsh.serialize(DraftWinner.schema, draftWinner);
 
-export class SolanaSDK {
-  private connection: Connection;
-
-  constructor(rpcUrl: string) {
-    this.connection = new Connection(rpcUrl);
-  }
-
-  public async getVersion(): Promise<Version> {
-    return this.connection.getVersion();
-  }
+  const accounts:AccountMeta[] = [];
 }

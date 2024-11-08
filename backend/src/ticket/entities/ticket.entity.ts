@@ -1,35 +1,47 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class Ticket {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({
-    type: "json",
+    type: 'json',
     nullable: false,
   })
-  lucky_draft: JSON
+  lucky_draft: JSON;
 
   @Column({
-    type: "enum",
-    enum: ['PendingCreation', 'Created', 'Win', 'Loss']
+    type: 'text',
+    enum: ['PendingCreation', 'Created', 'Win', 'Loss'],
   })
-  status: 'PendingCreation' | 'Created' | 'Win' | 'Loss'
+  status: 'PendingCreation' | 'Created' | 'Win' | 'Loss';
+
+  @Column({
+    nullable: true,
+    default: null,
+  })
+  transaction_id: string;
 
   @Column({
     nullable: false,
   })
-  merkle_hash: string
+  merkle_hash: string;
 
   @Column({
-    nullable: false
+    nullable: false,
   })
-  address: string
+  address: string;
 
   @CreateDateColumn()
-  created_at: string
+  created_at: string;
 
   @UpdateDateColumn()
-  updated_at: string
+  updated_at: string;
 }

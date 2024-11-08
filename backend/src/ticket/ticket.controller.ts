@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { TicketService } from './ticket.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -9,6 +17,7 @@ export class TicketController {
 
   @Post()
   create(@Body() createTicketDto: CreateTicketDto) {
+    const luckyDraft = createTicketDto.lucky_draft;
     return this.ticketService.create(createTicketDto);
   }
 

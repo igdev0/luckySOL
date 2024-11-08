@@ -18,7 +18,13 @@ describe('TicketController', () => {
     controller = module.get<TicketController>(TicketController);
   });
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
+    const response = await controller.create({
+      address: 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T',
+      lucky_draft: JSON.parse(JSON.stringify([[4, 1, 2, 34, 33, 6]])),
+    });
+
+    expect(response.merkle_root).toBeDefined();
     expect(controller).toBeDefined();
   });
 });

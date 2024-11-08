@@ -60,8 +60,15 @@ export class TicketService {
     });
   }
 
-  update(id: number, updateTicketDto: UpdateTicketDto) {
-    return `This action updates a #${id} ticket`;
+  update(id: string, updateTicketDto: UpdateTicketDto) {
+    // @todo:
+    // - Check the blockchain for the transaction_id
+    // - Verify if the transaction is correct (it includes the right program id and the right signer)
+
+    return this.ticketsRepository.update(id, {
+      transaction_id: updateTicketDto.transaction_id,
+      status: 'Created',
+    });
   }
 
   private async getMerkleRoot(address: string) {

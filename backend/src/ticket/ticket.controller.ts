@@ -37,6 +37,6 @@ export class TicketController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketService.update(+id, updateTicketDto);
+    return this.ticketService.update(id, updateTicketDto);
   }
 }

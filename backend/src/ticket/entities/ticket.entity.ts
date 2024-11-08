@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export type TicketStatus = 'PendingCreation' | 'Created' | 'Win' | 'Loss';
+
 @Entity()
 export class Ticket {
   @PrimaryGeneratedColumn('uuid')

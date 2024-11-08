@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Ticket } from './entities/ticket.entity';
+import { Ticket, TicketStatus } from './entities/ticket.entity';
 import { Repository } from 'typeorm';
 import * as crypto from 'node:crypto';
 import { MerkleTree } from 'merkletreejs';
@@ -10,6 +10,7 @@ import { MerkleTree } from 'merkletreejs';
 type TicketCreationResult = {
   id: string;
   merkle_root: string;
+  status: TicketStatus;
 };
 
 @Injectable()
@@ -27,11 +28,12 @@ export class TicketService {
       status: 'PendingCreation',
     });
 
-    let { id } = await this.ticketsRepository.save(entity);
+    let { id, status } = await this.ticketsRepository.save(entity);
     const merkle_root = await this.getMerkleRoot(createTicketDto.address);
     return {
       id,
       merkle_root,
+      status,
     };
   }
 

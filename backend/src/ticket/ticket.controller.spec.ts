@@ -4,6 +4,7 @@ import { TicketService } from './ticket.service';
 import { DatabaseTestModule } from '../database-test/database-test.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
+import * as crypto from 'node:crypto';
 
 const DEMO_ADDRESS_0 = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T';
 const DEMO_ADDRESS_1 = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGt3T';
@@ -92,5 +93,24 @@ describe('TicketController', () => {
 
     const allResponse = await controller.findAll(1, 10, null);
     expect(allResponse.total).toEqual(31);
+  });
+
+  it('Should update ticket transaction_id and its status', async () => {
+    const ticket = await controller.create({
+      address: DEMO_ADDRESS_0,
+      lucky_draft: [randomLuckyDraft()],
+    });
+
+    expect(ticket.status).toEqual('PendingCreation');
+
+    const transaction_id = crypto.hash('sha256', 'random');
+    await controller.update(ticket.id, { transaction_id });
+
+    const { transaction_id: tx_id, status } = await controller.findOne(
+      ticket.id,
+    );
+
+    expect(status).toEqual('Created');
+    expect(tx_id).toEqual(transaction_id);
   });
 });

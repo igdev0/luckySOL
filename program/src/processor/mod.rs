@@ -21,29 +21,29 @@ pub use process_deposit::process_deposit;
 pub use process_purchase_ticket::find_player_token_pda_account;
 pub use process_purchase_ticket::process_ticket_purchase;
 
-use crate::state::LotoInstruction;
+use crate::state::Instruction;
 
 pub fn processor(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let instr = LotoInstruction::try_from_slice(instruction_data)?;
+    let instr = Instruction::try_from_slice(instruction_data)?;
     match instr {
-        LotoInstruction::InitializePool(pool_storage_account) => {
+        Instruction::InitializePool(pool_storage_account) => {
             process_pool_initialization(program_id, accounts, &pool_storage_account)
         }
-        LotoInstruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
-        LotoInstruction::Withdraw(amount) => {
+        Instruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
+        Instruction::Withdraw(amount) => {
             process_player_withdraw::process_player_withdraw(program_id, accounts, amount)
         }
-        LotoInstruction::PurchaseTicket(account_data) => {
+        Instruction::PurchaseTicket(account_data) => {
             process_ticket_purchase(program_id, accounts, account_data)
         }
-        LotoInstruction::ClosePlayerAccount => {
+        Instruction::ClosePlayerAccount => {
             process_close_player_account::process_close_player_account(program_id, accounts)
         }
-        LotoInstruction::SelectWinnersAndAirdrop(draft_winners) => {
+        Instruction::SelectWinnersAndAirdrop(draft_winners) => {
             process_draft(program_id, &accounts.to_vec(), draft_winners)
         }
     }

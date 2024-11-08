@@ -2,7 +2,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::pubkey::Pubkey;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize)]
-pub enum LotoInstruction {
+pub enum Instruction {
     InitializePool(PoolStorageData),
     Deposit(u64),
     Withdraw(u64),

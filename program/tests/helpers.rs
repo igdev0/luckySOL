@@ -1,6 +1,6 @@
 use solana_lottery_program::{
     processor::{find_stake_pool_mint_pda, find_stake_pool_vault_pda},
-    state::{DraftWinner, LotoInstruction, PoolStorageData},
+    state::{DraftWinner, Instruction as LotoInstruction, PoolStorageData},
     ID,
 };
 use solana_program_test::ProgramTest;

@@ -7,7 +7,7 @@ use solana_lottery_program::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::{DraftWinner, LotoInstruction, PoolStorageData, TicketAccountData},
+    state::{DraftWinner, Instruction as LotoInstruction, PoolStorageData, TicketAccountData},
 };
 use solana_program_test::*;
 use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};

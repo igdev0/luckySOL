@@ -5,6 +5,22 @@ import { DatabaseTestModule } from '../database-test/database-test.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
 
+const DEMO_ADDRESS = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T';
+function generateLuckyNumber() {
+  return Math.random() * 66;
+}
+
+function randomLuckyDraft() {
+  return [
+    generateLuckyNumber(),
+    generateLuckyNumber(),
+    generateLuckyNumber(),
+    generateLuckyNumber(),
+    generateLuckyNumber(),
+    generateLuckyNumber(),
+  ];
+}
+
 describe('TicketController', () => {
   let controller: TicketController;
 
@@ -18,13 +34,30 @@ describe('TicketController', () => {
     controller = module.get<TicketController>(TicketController);
   });
 
-  it('should be defined', async () => {
+  it('Should create ticket', async () => {
     const response = await controller.create({
-      address: 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T',
-      lucky_draft: JSON.parse(JSON.stringify([[4, 1, 2, 34, 33, 6]])),
+      address: DEMO_ADDRESS,
+      lucky_draft: [randomLuckyDraft()],
     });
 
     expect(response.merkle_root).toBeDefined();
     expect(controller).toBeDefined();
+  });
+
+  it('Should return paginated data', async () => {
+    let i = 0;
+
+    while (i < 50) {
+      i += 1;
+      await controller.create({
+        address: DEMO_ADDRESS,
+        lucky_draft: [randomLuckyDraft()],
+      });
+    }
+
+    const response = await controller.findAll(1, 10);
+
+    expect(response.data.length).toEqual(10);
+    expect(response.total).toEqual(50);
   });
 });

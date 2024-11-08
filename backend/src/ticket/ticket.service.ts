@@ -33,8 +33,18 @@ export class TicketService {
     };
   }
 
-  findAll() {
-    return `This action returns all ticket`;
+  async findAll(page: number, limit: number) {
+    const [data, total] = await this.ticketsRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'ASC' },
+    });
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   findOne(id: number) {

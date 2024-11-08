@@ -55,10 +55,6 @@ export class TicketService {
     return `This action updates a #${id} ticket`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} ticket`;
-  }
-
   private async getMerkleRoot(address: string) {
     const tickets = await this.ticketsRepository.find({
       where: {

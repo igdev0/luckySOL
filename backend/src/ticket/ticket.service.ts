@@ -8,6 +8,7 @@ import * as crypto from 'node:crypto';
 import { MerkleTree } from 'merkletreejs';
 
 type TicketCreationResult = {
+  id: string;
   merkle_root: string;
 };
 
@@ -26,9 +27,10 @@ export class TicketService {
       status: 'PendingCreation',
     });
 
-    await this.ticketsRepository.save(entity);
+    let { id } = await this.ticketsRepository.save(entity);
     const merkle_root = await this.getMerkleRoot(createTicketDto.address);
     return {
+      id,
       merkle_root,
     };
   }
@@ -47,8 +49,10 @@ export class TicketService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} ticket`;
+  findOne(id: string) {
+    return this.ticketsRepository.findOne({
+      where: { id },
+    });
   }
 
   update(id: number, updateTicketDto: UpdateTicketDto) {

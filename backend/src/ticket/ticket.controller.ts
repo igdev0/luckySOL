@@ -28,7 +28,7 @@ export class TicketController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.ticketService.findOne(+id);
+    return this.ticketService.findOne(id);
   }
 
   @Patch(':id')

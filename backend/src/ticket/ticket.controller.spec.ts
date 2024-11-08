@@ -44,6 +44,16 @@ describe('TicketController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('Should find a single ticket by ID', async () => {
+    const creationResult = await controller.create({
+      address: DEMO_ADDRESS,
+      lucky_draft: [randomLuckyDraft()],
+    });
+
+    const response = await controller.findOne(creationResult.id);
+    expect(response.id).toEqual(creationResult.id);
+  });
+
   it('Should return paginated data', async () => {
     let i = 0;
 

@@ -5,7 +5,8 @@ import { DatabaseTestModule } from '../database-test/database-test.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
 
-const DEMO_ADDRESS = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T';
+const DEMO_ADDRESS_0 = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGq3T';
+const DEMO_ADDRESS_1 = 'FSvf6qv7oN4gr3DZPkpGe3TAJFbKLbCQLdrv827vGt3T';
 function generateLuckyNumber() {
   return Math.random() * 66;
 }
@@ -36,7 +37,7 @@ describe('TicketController', () => {
 
   it('Should create ticket', async () => {
     const response = await controller.create({
-      address: DEMO_ADDRESS,
+      address: DEMO_ADDRESS_0,
       lucky_draft: [randomLuckyDraft()],
     });
 
@@ -46,7 +47,7 @@ describe('TicketController', () => {
 
   it('Should find a single ticket by ID', async () => {
     const creationResult = await controller.create({
-      address: DEMO_ADDRESS,
+      address: DEMO_ADDRESS_0,
       lucky_draft: [randomLuckyDraft()],
     });
 
@@ -60,7 +61,7 @@ describe('TicketController', () => {
     while (i < 50) {
       i += 1;
       await controller.create({
-        address: DEMO_ADDRESS,
+        address: DEMO_ADDRESS_0,
         lucky_draft: [randomLuckyDraft()],
       });
     }
@@ -69,5 +70,27 @@ describe('TicketController', () => {
 
     expect(response.data.length).toEqual(10);
     expect(response.total).toEqual(50);
+  });
+
+  it('Should return paginated data for a given address', async () => {
+    let i = 0;
+    while (i < 30) {
+      i += 1;
+      await controller.create({
+        address: DEMO_ADDRESS_1,
+        lucky_draft: [randomLuckyDraft()],
+      });
+    }
+
+    await controller.create({
+      address: DEMO_ADDRESS_0,
+      lucky_draft: [randomLuckyDraft()],
+    });
+
+    const response = await controller.findAll(1, 10, DEMO_ADDRESS_1);
+    expect(response.total).toEqual(30);
+
+    const allResponse = await controller.findAll(1, 10, null);
+    expect(allResponse.total).toEqual(31);
   });
 });

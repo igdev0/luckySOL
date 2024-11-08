@@ -35,8 +35,13 @@ export class TicketService {
     };
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, address: string | null) {
     const [data, total] = await this.ticketsRepository.findAndCount({
+      where: !address
+        ? {}
+        : {
+            address: address,
+          },
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'ASC' },

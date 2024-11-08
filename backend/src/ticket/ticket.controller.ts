@@ -22,8 +22,12 @@ export class TicketController {
   }
 
   @Get()
-  findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.ticketService.findAll(page, limit);
+  findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('address') address = null,
+  ) {
+    return this.ticketService.findAll(page, limit, address);
   }
 
   @Get(':id')

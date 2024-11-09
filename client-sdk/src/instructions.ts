@@ -2,20 +2,20 @@ import * as borsh from 'borsh';
 import {PublicKey} from '@solana/web3.js';
 
 export interface PoolStorageDataType {
-  initial_amount: bigint,
-  ticket_price: bigint,
-  draft_count: bigint
+  initialAmount: bigint,
+  ticketPrice: bigint,
+  draftCount: bigint
 }
 
 export class PoolStorageData {
-  initial_amount: bigint;
-  ticket_price: bigint;
-  draft_count: bigint;
+  initialAmount: bigint;
+  ticketPrice: bigint;
+  draftCount: bigint;
 
   constructor(fields: PoolStorageDataType) {
-    this.draft_count = fields.draft_count;
-    this.ticket_price = fields.ticket_price;
-    this.initial_amount = fields.initial_amount;
+    this.draftCount = fields.draftCount;
+    this.ticketPrice = fields.ticketPrice;
+    this.initialAmount = fields.initialAmount;
   }
 
   static schema: borsh.Schema = {

@@ -59,7 +59,7 @@ export class DraftWinner {
           type: "u8"
         }
       },
-      ticketIndices: {
+      ticket_indices: {
         array: {
           type: "u32"
         },
@@ -70,7 +70,7 @@ export class DraftWinner {
         }
       },
       address: "u64",
-      tokenAccount: "u64"
+      token_account: "u64"
     }
   };
 }

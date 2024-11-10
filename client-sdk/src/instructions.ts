@@ -21,7 +21,7 @@ export class DraftWinner {
   amount: bigint;
   @field({type: vec("u8")})
   proof: Uint8Array;
-  @field({type: vec("u64")})
+  @field({type: vec("u32")})
   ticket_indices: number[];
   @field({type: vec(vec("u8"))})
   tickets: Uint8Array[];

@@ -1,5 +1,5 @@
 import {PublicKey} from '@solana/web3.js';
-import {vec, field} from '@dao-xyz/borsh';
+import {vec, VecKind, field, variant,} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
   @field({type: "u64"})
@@ -16,6 +16,15 @@ export class PoolStorageData {
   }
 }
 
+@variant(0)
+export class InitializePool {
+  @field({type: PoolStorageData})
+  poolData: PoolStorageData;
+  constructor(poolData: PoolStorageData) {
+    this.poolData = poolData
+  }
+}
+
 export class DraftWinner {
   @field({type: "u64"})
   amount: bigint;
@@ -29,7 +38,6 @@ export class DraftWinner {
   address: PublicKey;
   @field({type: "u64"})
   token_account: PublicKey;
-
   constructor(fields: DraftWinner) {
     this.amount = fields.amount;
     this.proof = fields.proof;
@@ -40,5 +48,4 @@ export class DraftWinner {
   }
 }
 
-export class Instruction {
-}
+export type Instruction = InitializePool

@@ -26,7 +26,7 @@ export default [
       }),
       commonjs(),
       typescript({
-        tsconfig: './tsconfig.json'
+        tsconfig: './tsconfig.build.json'
       })
     ],
     external: ['@solana/web3.js']

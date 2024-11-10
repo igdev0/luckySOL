@@ -1,16 +1,17 @@
 {
   "compilerOptions": {
     "moduleResolution": "NodeNext",
-    "target": "es2018",
+    "target": "ES2023",
     "module": "NodeNext",
     "declaration": true,
-    "outDir": "./dist",
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "sourceMap": false,
     "emitDecoratorMetadata": true,
+    "allowJs": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"]
 }

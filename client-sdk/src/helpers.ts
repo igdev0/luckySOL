@@ -8,3 +8,11 @@ export function findPoolStorageSeed(address: PublicKey) {
   ];
     return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
 }
+
+export function findReceiptPoolMintPDA(address: PublicKey) {
+  const seeds = [
+    Uint8Array.from(Buffer.from(PoolStorageSeed.ReceiptMint)),
+    Uint8Array.from(address.toBuffer()),
+  ];
+  return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
+}

@@ -1,9 +1,8 @@
 use crate::{
     error::LotteryError,
-    state::{PoolStorageData, PoolStorageSeed, TicketAccountData},
+    state::{PoolStorageData, PoolStorageSeed, TicketAccountData, POOL_STORAGE_SIZE},
 };
 use borsh::{to_vec, BorshDeserialize, BorshSerialize};
-
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -76,7 +75,7 @@ fn initialize_pool_vault<'a>(
 
     let rent = Rent::get()?;
 
-    let exempt_balance = rent.minimum_balance(size_of::<PoolStorageData>());
+    let exempt_balance = rent.minimum_balance(POOL_STORAGE_SIZE as usize);
 
     if pool_authority_account.lamports() < (exempt_balance + pool_storage_data.initial_amout) {
         return Err(LotteryError::InsufficientFunds.into());
@@ -86,7 +85,7 @@ fn initialize_pool_vault<'a>(
         &pool_authority_account.key,
         &pool_vault_address,
         exempt_balance + pool_storage_data.initial_amout,
-        size_of::<PoolStorageData>() as u64,
+        POOL_STORAGE_SIZE as u64,
         &program_id,
     );
 

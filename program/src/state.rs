@@ -18,6 +18,8 @@ pub struct TicketAccountData {
     pub total_tickets: u64,
 }
 
+pub const TICKET_ACCOUNT_DATA_SIZE: u32 = 40;
+
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 pub struct DraftWinner {
     pub amount: u64,
@@ -34,6 +36,8 @@ pub struct PoolStorageData {
     pub draft_count: u64,
     pub initial_amout: u64,
 }
+
+pub const POOL_STORAGE_SIZE: u32 = 24;
 
 pub enum PoolStorageSeed {
     // The stake pool storage seed is used to create the PDA for the stake pool,

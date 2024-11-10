@@ -15,7 +15,7 @@ use solana_program::program_pack::Pack;
 
 use crate::{
     error::LotteryError,
-    state::{PoolStorageData, PoolStorageSeed, TicketAccountData},
+    state::{PoolStorageData, PoolStorageSeed, TicketAccountData, TICKET_ACCOUNT_DATA_SIZE},
 };
 
 use super::{find_player_pda_account, find_stake_pool_mint_pda, update_player_account};
@@ -162,9 +162,7 @@ fn initialize_player_account<'a>(
 ) -> ProgramResult {
     let rent = Rent::get()?;
 
-    let ticket_account_data_space = std::mem::size_of::<TicketAccountData>();
-
-    if !rent.is_exempt(player_account.lamports(), ticket_account_data_space) {
+    if !rent.is_exempt(player_account.lamports(), TICKET_ACCOUNT_DATA_SIZE as usize) {
         return Err(solana_program::program_error::ProgramError::AccountNotRentExempt);
     }
 
@@ -182,13 +180,13 @@ fn initialize_player_account<'a>(
     }
 
     // The minimum balance required to create the account
-    let minimum_balance = rent.minimum_balance(ticket_account_data_space);
+    let minimum_balance = rent.minimum_balance(TICKET_ACCOUNT_DATA_SIZE as usize);
 
     let instruction = system_instruction::create_account(
         &player_account.key,
         &player_pda_account_address,
         minimum_balance + ticket_price,
-        ticket_account_data_space as u64,
+        TICKET_ACCOUNT_DATA_SIZE as u64,
         program_id,
     );
 

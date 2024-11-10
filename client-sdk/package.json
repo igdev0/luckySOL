@@ -20,6 +20,6 @@
     "@solana/web3.js": "^1.79.0"
   },
   "dependencies": {
-    "borsh": "^2.0.0"
+    "@dao-xyz/borsh": "^5.2.3"
   }
 }

@@ -1,76 +1,44 @@
-import * as borsh from 'borsh';
 import {PublicKey} from '@solana/web3.js';
-
-export interface PoolStorageDataType {
-  initialAmount: bigint,
-  ticketPrice: bigint,
-  draftCount: bigint
-}
+import {vec, field} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
-  initialAmount: bigint;
-  ticketPrice: bigint;
-  draftCount: bigint;
+  @field({type: "u64"})
+  initial_amount: bigint;
+  @field({type: "u64"})
+  ticket_price: bigint;
+  @field({type: "u64"})
+  draft_count: bigint;
 
-  constructor(fields: PoolStorageDataType) {
-    this.draftCount = fields.draftCount;
-    this.ticketPrice = fields.ticketPrice;
-    this.initialAmount = fields.initialAmount;
+  constructor(data: PoolStorageData) {
+    this.draft_count = data.draft_count
+    this.initial_amount = data.initial_amount
+    this.ticket_price = data.ticket_price
   }
-
-  static schema: borsh.Schema = {
-    struct: {
-      initial_amount: "u64",
-      ticket_price: "u64",
-      draft_count: "u64",
-    }
-  };
 }
 
 export class DraftWinner {
+  @field({type: "u64"})
   amount: bigint;
+  @field({type: vec("u8")})
   proof: Uint8Array;
-  ticketIndices: number[];
+  @field({type: vec("u64")})
+  ticket_indices: number[];
+  @field({type: vec(vec("u8"))})
   tickets: Uint8Array[];
+  @field({type: "u64"})
   address: PublicKey;
-  tokenAccount: PublicKey;
+  @field({type: "u64"})
+  token_account: PublicKey;
 
-  constructor(fields: {
-    amount: bigint;
-    proof: Uint8Array;
-    ticketIndices: number[];
-    tickets: Uint8Array[];
-    address: PublicKey;
-    tokenAccount: PublicKey
-  }) {
+  constructor(fields: DraftWinner) {
     this.amount = fields.amount;
     this.proof = fields.proof;
-    this.ticketIndices = fields.ticketIndices;
+    this.ticket_indices = fields.ticket_indices;
     this.tickets = fields.tickets;
     this.address = fields.address;
-    this.tokenAccount = fields.tokenAccount;
+    this.token_account = fields.token_account;
   }
+}
 
-  static schema: borsh.Schema = {
-    struct: {
-      "amount": "u64",
-      "proof": {
-        array: {
-          type: "u8"
-        }
-      },
-      ticket_indices: {
-        array: {
-          type: "u32"
-        },
-      },
-      tickets: {
-        array: {
-          type: "u8"
-        }
-      },
-      address: "u64",
-      token_account: "u64"
-    }
-  };
+export class Instruction {
 }

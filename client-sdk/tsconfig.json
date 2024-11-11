@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Node",
     "target": "ES2023",
     "module": "NodeNext",
     "declaration": true,
     "noEmit": true,
     "strict": true,
+    "allowArbitraryExtensions": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": false,
     "emitDecoratorMetadata": true,
     "allowJs": true,
     "experimentalDecorators": true,

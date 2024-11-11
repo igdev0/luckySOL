@@ -5,10 +5,10 @@ import {
   Transaction,
 } from '@solana/web3.js';
 import * as path from 'path';
-import {InitializePool, PoolStorageData} from '../dist/instructions.js';
+import {InitializePool, PoolStorageData} from '../dist/instructions';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
-import {processPoolInitializationInstruction} from '../dist/index.esm.js';
+import {processPoolInitializationInstruction} from '../dist/index.esm';
 
 const payer_path = path.join(__dirname, '../program/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');

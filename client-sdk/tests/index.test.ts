@@ -80,7 +80,7 @@ describe("Program main features", () => {
 
   it('should deposit 10 SOL into the pool', async () => {
     const tx = new Transaction().add(processDepositInstruction(10 * LAMPORTS_PER_SOL, payer.publicKey, payer.publicKey));
-    const txHash = await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"});
+    await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"});
 
     const [poolPDA] = findPoolStoragePDA(payer.publicKey);
     const balance = await connection.getBalance(poolPDA, "confirmed");

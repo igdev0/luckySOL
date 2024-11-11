@@ -88,4 +88,13 @@ export class PurchaseTicket {
   }
 }
 
-export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket
+@variant(4)
+export class SelectWinnersAndAirdrop {
+  @field({type: vec(DraftWinner)})
+  data: DraftWinner[]
+  constructor(data: DraftWinner[]) {
+    this.data = data;
+  }
+}
+
+export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket | SelectWinnersAndAirdrop

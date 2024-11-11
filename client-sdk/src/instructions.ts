@@ -77,4 +77,15 @@ export class Withdraw {
     this.amount = amount;
   }
 }
-export type Instruction = InitializePool | Deposit | Withdraw
+
+@variant(3)
+export class PurchaseTicket {
+  @field({type: TicketAccountData})
+  accountData: TicketAccountData;
+
+  constructor(data: TicketAccountData) {
+    this.accountData = data;
+  }
+}
+
+export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket

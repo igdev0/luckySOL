@@ -60,4 +60,13 @@ export class TicketAccountData {
   }
 }
 
-export type Instruction = InitializePool
+@variant(1)
+export class Deposit {
+  @field({type: "u64"})
+  amount: bigint
+  constructor(amount: bigint) {
+    this.amount = amount;
+  }
+}
+
+export type Instruction = InitializePool | Deposit

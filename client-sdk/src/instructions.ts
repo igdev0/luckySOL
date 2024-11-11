@@ -97,4 +97,7 @@ export class SelectWinnersAndAirdrop {
   }
 }
 
-export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket | SelectWinnersAndAirdrop
+@variant(5)
+export class ClosePlayerAccount {}
+
+export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket | SelectWinnersAndAirdrop | ClosePlayerAccount;

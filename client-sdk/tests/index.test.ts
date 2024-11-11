@@ -5,12 +5,17 @@ import {
   Transaction,
 } from '@solana/web3.js';
 import * as path from 'path';
-import {InitializePool, PoolStorageData} from '../dist/instructions';
+import {
+  InitializePool,
+  PoolStorageData,
+  findPoolStoragePDA,
+  processPoolInitializationInstruction,
+  POOL_STORAGE_DATA_LENGTH,
+} from '../dist/index.esm';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
-import {processPoolInitializationInstruction} from '../dist/index.esm';
 
-const payer_path = path.join(__dirname, '../program/solana_lottery_program-keypair.json');
+const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
 
 const payer_buffer = fs.readFileSync(payer_path, "utf-8");
@@ -27,7 +32,7 @@ async function delay(ms = 1000) {
 
 let validatorProcess: child_process.ChildProcess;
 beforeAll(async () => {
-  validatorProcess = child_process.spawn('solana-test-validator', ['--reset'], { stdio: 'inherit' });
+  validatorProcess = child_process.spawn('solana-test-validator', ["--reset"], { stdio: 'inherit' });
   await new Promise((resolve) => setTimeout(resolve, 1000)); // adjust delay as needed
   // Set up a connection to the local validator
   connection = new Connection('http://localhost:8899', {
@@ -38,7 +43,7 @@ beforeAll(async () => {
   await connection.requestAirdrop(payer.publicKey, 100 * LAMPORTS_PER_SOL);
   await delay(1000)
 
-  const programPath = path.join(__dirname, '../program/solana_lottery_program.so'); // Update the path
+  const programPath = path.join(__dirname, '../../program/target/deploy/solana_lottery_program.so'); // Update the path
 
   child_process.execSync("solana config set --url http://localhost:8899");
   child_process.execSync(`solana program deploy ${programPath} --program-id ${program_id_path} --fee-payer ${payer_path}`);
@@ -53,20 +58,27 @@ describe("Program main features", () => {
       // Connection.
       await delay(1000);
         const poolData = new PoolStorageData({
-          initial_amount: BigInt(10),
-          draft_count: BigInt(0),
-          ticket_price: BigInt(50)
+          initial_amount: (10 * LAMPORTS_PER_SOL).toString(),
+          draft_count: (10 * LAMPORTS_PER_SOL).toString(),
+          ticket_price: (.5 * LAMPORTS_PER_SOL).toString()
         });
 
         const poolInitialization = new InitializePool(poolData);
         const {blockhash} = await connection.getLatestBlockhash();
 
         const txInstruction = processPoolInitializationInstruction(poolInitialization, payer.publicKey);
-
         const tx = new Transaction({recentBlockhash: blockhash, feePayer: payer.publicKey}).add(txInstruction);
         await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"})
+
+      const [poolPDA] = findPoolStoragePDA(payer.publicKey);
+      const balance = await connection.getBalance(poolPDA, "confirmed");
+
+      const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
+
+      expect(balance).toEqual(rentExempt + (10 * LAMPORTS_PER_SOL))
+      // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
       // @todo:
       // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
-        await delay(500);
+        await delay(1000);
     })
 })

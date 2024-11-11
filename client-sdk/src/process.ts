@@ -3,6 +3,7 @@ import {PublicKey, SYSVAR_RENT_PUBKEY, TransactionInstruction} from '@solana/web
 import {serialize} from '@dao-xyz/borsh';
 import {PROGRAM_ID, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID} from './constants.js';
 import {findPoolStoragePDA, findReceiptPoolMintPDA} from './helpers.js';
+import {Deposit} from './instructions';
 
 export function processPoolInitializationInstruction(data: InitializePool, payer: PublicKey) {
   const dataSerialized = Buffer.from(serialize(data));
@@ -46,4 +47,32 @@ export function processPoolInitializationInstruction(data: InitializePool, payer
     ]
   });
 
+}
+
+
+export function processDepositInstruction(amount: bigint, payer: PublicKey, pool_authority: PublicKey) {
+  const deposit = new Deposit(amount);
+  const data = Buffer.from(serialize(deposit));
+  const [poolPDA] = findPoolStoragePDA(pool_authority);
+    return new TransactionInstruction({
+      data,
+      programId: PROGRAM_ID,
+      keys: [
+        {
+          pubkey: payer,
+          isSigner: true,
+          isWritable: false,
+        },
+        {
+          pubkey: poolPDA,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: SYSTEM_PROGRAM_ID,
+          isSigner: false,
+          isWritable: false,
+        }
+      ]
+    })
 }

@@ -7,10 +7,16 @@ use solana_lottery_program::{
         find_player_pda_account, find_player_token_pda_account, find_stake_pool_mint_pda,
         find_stake_pool_vault_pda,
     },
-    state::{DraftWinner, Instruction as LotoInstruction, PoolStorageData, TicketAccountData},
+    state::{
+        DraftWinner, Instruction as LotoInstruction, PoolStorageData, TicketAccountData,
+        POOL_STORAGE_SIZE,
+    },
 };
 use solana_program_test::*;
-use solana_sdk::{instruction::AccountMeta, program_pack::Pack, signer::Signer};
+use solana_sdk::{
+    instruction::AccountMeta, native_token::LAMPORTS_PER_SOL, program_pack::Pack, rent::Rent,
+    signer::Signer,
+};
 
 use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
@@ -32,6 +38,20 @@ async fn initialize_pool() {
         )
         .await
         .expect("Unable to process data");
+
+    let (pool_pda, ..) =
+        find_stake_pool_vault_pda(&solana_lottery_program::ID, &pool_authority.pubkey());
+
+    let pool_account = client.get_account(pool_pda).await.unwrap().unwrap();
+    let rent = Rent::default();
+
+    let rent_exempt_balance = rent.minimum_balance(POOL_STORAGE_SIZE as usize);
+
+    println!("{}", rent_exempt_balance);
+    assert_eq!(
+        pool_account.lamports,
+        10 * LAMPORTS_PER_SOL + rent_exempt_balance
+    );
 
     let mint_account = client
         .get_account(pool_mint_account)

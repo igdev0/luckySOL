@@ -54,7 +54,6 @@ pub fn process_pool_initialization(
         rent_account,
         system_program_account,
         spl_token_2022_account,
-        pool_storage_data.initial_amout,
     )?;
     Ok(())
 }
@@ -77,14 +76,14 @@ fn initialize_pool_vault<'a>(
 
     let exempt_balance = rent.minimum_balance(POOL_STORAGE_SIZE as usize);
 
-    if pool_authority_account.lamports() < (exempt_balance + pool_storage_data.initial_amout) {
+    if pool_authority_account.lamports() < (exempt_balance + pool_storage_data.initial_amount) {
         return Err(LotteryError::InsufficientFunds.into());
     }
 
     let pool_vault_account_instr = system_instruction::create_account(
         &pool_authority_account.key,
         &pool_vault_address,
-        exempt_balance + pool_storage_data.initial_amout,
+        exempt_balance + pool_storage_data.initial_amount,
         POOL_STORAGE_SIZE as u64,
         &program_id,
     );
@@ -117,7 +116,6 @@ fn initialize_pool_mint<'a>(
     rent_account: &AccountInfo<'a>,
     system_program_account: &AccountInfo<'a>,
     spl_token_2022_account: &AccountInfo<'a>,
-    amount: u64,
 ) -> ProgramResult {
     let (pool_mint_address, bump) =
         find_stake_pool_mint_pda(program_id, &pool_authority_account.key);
@@ -138,7 +136,7 @@ fn initialize_pool_mint<'a>(
         system_instruction::create_account(
             &pool_authority_account.key,
             &mint_account.key,
-            exempt_balance + amount,
+            exempt_balance,
             spl_token_2022::state::Mint::LEN as u64,
             &spl_token_2022::ID,
         );

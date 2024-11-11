@@ -34,7 +34,7 @@ pub struct DraftWinner {
 pub struct PoolStorageData {
     pub ticket_price: u64, // in lamports
     pub draft_count: u64,
-    pub initial_amout: u64,
+    pub initial_amount: u64,
 }
 
 pub const POOL_STORAGE_SIZE: u32 = 24;

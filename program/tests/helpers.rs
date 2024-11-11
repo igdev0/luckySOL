@@ -9,6 +9,7 @@ use solana_sdk::{
     account::Account,
     hash::Hash,
     instruction::{AccountMeta, Instruction},
+    native_token::LAMPORTS_PER_SOL,
     pubkey::Pubkey,
     signature::Keypair,
     signer::Signer,
@@ -46,7 +47,7 @@ pub fn initialize_stake_pool_tx(
     let pool_storage_data = PoolStorageData {
         ticket_price: 100_000_500,
         draft_count: 0,
-        initial_amout: 100_000_500,
+        initial_amount: 10 * LAMPORTS_PER_SOL,
     };
 
     let instruction_data = LotoInstruction::InitializePool(pool_storage_data);

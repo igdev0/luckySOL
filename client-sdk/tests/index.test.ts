@@ -39,7 +39,6 @@ beforeAll(async () => {
   await delay(1000)
 
   const programPath = path.join(__dirname, '../program/solana_lottery_program.so'); // Update the path
-  // const programId = Keypair.generate(); // Generate a new keypair for the program
 
   child_process.execSync("solana config set --url http://localhost:8899");
   child_process.execSync(`solana program deploy ${programPath} --program-id ${program_id_path} --fee-payer ${payer_path}`);

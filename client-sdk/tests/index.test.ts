@@ -66,6 +66,8 @@ describe("Program main features", () => {
 
         const tx = new Transaction({recentBlockhash: blockhash, feePayer: payer.publicKey}).add(txInstruction);
         await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"})
+      // @todo:
+      // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
         await delay(500);
     })
 })

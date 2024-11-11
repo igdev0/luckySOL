@@ -1,5 +1,5 @@
 import {PublicKey} from '@solana/web3.js';
-import {vec, VecKind, field, variant,} from '@dao-xyz/borsh';
+import {vec, VecKind, field, variant, fixedArray,} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
   @field({type: "u64"})
@@ -45,6 +45,18 @@ export class DraftWinner {
     this.tickets = fields.tickets;
     this.address = fields.address;
     this.token_account = fields.token_account;
+  }
+}
+
+export class TicketAccountData {
+  @field({type: fixedArray("u8", 32)})
+  merkle_root: number[]
+  @field({type: "u64"})
+  total_tickets: bigint
+
+  constructor(fields: TicketAccountData) {
+    this.merkle_root = fields.merkle_root;
+    this.total_tickets = fields.total_tickets;
   }
 }
 

@@ -69,4 +69,12 @@ export class Deposit {
   }
 }
 
-export type Instruction = InitializePool | Deposit
+@variant(2)
+export class Withdraw {
+  @field({type: "u64"})
+  amount: bigint
+  constructor(amount: bigint) {
+    this.amount = amount;
+  }
+}
+export type Instruction = InitializePool | Deposit | Withdraw

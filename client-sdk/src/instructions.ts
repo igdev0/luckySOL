@@ -1,5 +1,5 @@
 import {PublicKey} from '@solana/web3.js';
-import {vec, VecKind, field, variant, fixedArray,} from '@dao-xyz/borsh';
+import {vec, field, variant, fixedArray,} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
   @field({type: "u64"})

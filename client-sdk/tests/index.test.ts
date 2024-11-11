@@ -10,7 +10,7 @@ import {
   PoolStorageData,
   findPoolStoragePDA,
   processPoolInitializationInstruction,
-  POOL_STORAGE_DATA_LENGTH,
+  POOL_STORAGE_DATA_LENGTH, processDepositInstruction,
 } from '../dist/index.esm';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
@@ -76,9 +76,21 @@ describe("Program main features", () => {
       const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
 
       expect(balance).toEqual(rentExempt + (10 * LAMPORTS_PER_SOL))
-      // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
-      // @todo:
-      // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
-        await delay(1000);
     })
+
+  it('should deposit 10 SOL into the pool', async () => {
+    const tx = new Transaction().add(processDepositInstruction(10 * LAMPORTS_PER_SOL, payer.publicKey, payer.publicKey));
+    const txHash = await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"});
+
+    const [poolPDA] = findPoolStoragePDA(payer.publicKey);
+    const balance = await connection.getBalance(poolPDA, "confirmed");
+
+    const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
+    expect(balance).toEqual(rentExempt + (20 * LAMPORTS_PER_SOL))
+    // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
+    // @todo:
+    // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
+    await delay(1000);
+
+  });
 })

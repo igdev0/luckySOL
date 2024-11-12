@@ -1,5 +1,5 @@
 import {PublicKey} from '@solana/web3.js';
-import {vec, field, variant, fixedArray,} from '@dao-xyz/borsh';
+import {vec, field, variant, fixedArray, serialize, serializer, BinaryWriter,} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
   @field({type: "u64"})
@@ -49,8 +49,10 @@ export class DraftWinner {
 }
 
 export class TicketAccountData {
-  @field({type: fixedArray("u8", 32)})
-  merkle_root: number[]
+  @field({
+    type: fixedArray('u8', 32)
+  })
+  merkle_root: Uint8Array
   @field({type: "u64"})
   total_tickets: bigint
 
@@ -82,7 +84,6 @@ export class Withdraw {
 export class PurchaseTicket {
   @field({type: TicketAccountData})
   accountData: TicketAccountData;
-
   constructor(data: TicketAccountData) {
     this.accountData = data;
   }

@@ -7,7 +7,7 @@ import {
   findPoolStoragePDA,
   findReceiptPoolMintPDA
 } from './helpers.js';
-import {Deposit, InitializePool, TicketAccountData} from './instructions';
+import {Deposit, InitializePool, PurchaseTicket, TicketAccountData} from './instructions';
 
 export function processPoolInitializationInstruction(data: InitializePool, payer: PublicKey) {
   const dataSerialized = Buffer.from(serialize(data));
@@ -82,7 +82,7 @@ export function processDepositInstruction(amount: bigint, payer: PublicKey, pool
 }
 
 export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey ) {
-  const data = Buffer.from(serialize(ticketAccountData));
+  const data = Buffer.from(serialize(new PurchaseTicket(ticketAccountData)));
   const [poolPDA] = findPoolStoragePDA(poolAuthority);
   const [mintPDA] = findReceiptPoolMintPDA(poolAuthority);
   const [playerPDA] = findPlayerAccountPDA(player);
@@ -92,46 +92,55 @@ export function processPurchaseTicketInstruction(ticketAccountData: TicketAccoun
     data,
     programId: PROGRAM_ID,
     keys: [
+      // 1. Pool authority
       {
         pubkey: poolAuthority,
         isSigner: false,
-        isWritable: false,
+        isWritable: true,
       },
+      // 2. Account payer
       {
         pubkey: player,
         isSigner: true,
-        isWritable: false,
+        isWritable: true,
       },
+      // 3. Account PDA for payer
       {
         pubkey: playerPDA,
         isSigner: false,
         isWritable: true,
       },
+      // 4. The player token account
       {
         pubkey: playerTokenPDA,
         isSigner: false,
         isWritable: true,
       },
+      // 5. Stake pool vault
       {
         pubkey: poolPDA,
         isSigner: false,
         isWritable: true,
       },
+      // 6. Stake pool mint account
       {
         pubkey: mintPDA,
         isSigner: false,
         isWritable: true,
       },
+      // 7. Rent account
       {
         pubkey: SYSVAR_RENT_PUBKEY,
         isSigner: false,
         isWritable: false,
       },
+      // 8. SPL 2022 account
       {
         pubkey: TOKEN_PROGRAM_ID,
         isSigner: false,
         isWritable: false,
       },
+      // 9. System account
       {
         pubkey: SYSTEM_PROGRAM_ID,
         isSigner: false,

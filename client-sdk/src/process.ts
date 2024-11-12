@@ -2,8 +2,14 @@ import {InitializePool} from '../dist/instructions.js';
 import {PublicKey, SYSVAR_RENT_PUBKEY, TransactionInstruction} from '@solana/web3.js';
 import {serialize} from '@dao-xyz/borsh';
 import {PROGRAM_ID, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID} from './constants.js';
-import {findPoolStoragePDA, findReceiptPoolMintPDA} from './helpers.js';
-import {Deposit} from './instructions';
+import {
+  findPlayerAccountPDA,
+  findPlayerTokenAccountPDA,
+  findPoolStoragePDA,
+  findReceiptPoolMintPDA
+} from './helpers.js';
+import {Deposit, TicketAccountData} from './instructions';
+import * as timers from 'node:timers';
 
 export function processPoolInitializationInstruction(data: InitializePool, payer: PublicKey) {
   const dataSerialized = Buffer.from(serialize(data));
@@ -75,4 +81,64 @@ export function processDepositInstruction(amount: bigint, payer: PublicKey, pool
         }
       ]
     })
+}
+
+export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey,  ) {
+  const data = Buffer.from(serialize(ticketAccountData));
+  const [poolPDA] = findPoolStoragePDA(poolAuthority);
+  const [mintPDA] = findReceiptPoolMintPDA(poolAuthority);
+  const [playerPDA] = findPlayerAccountPDA(player);
+  const [playerTokenPDA] = findPlayerTokenAccountPDA(player);
+
+  return new TransactionInstruction({
+    data,
+    programId: PROGRAM_ID,
+    keys: [
+      {
+        pubkey: poolAuthority,
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: player,
+        isSigner: true,
+        isWritable: false,
+      },
+      {
+        pubkey: playerPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: playerTokenPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: poolPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: mintPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: SYSVAR_RENT_PUBKEY,
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: TOKEN_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: SYSTEM_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false,
+      }
+    ]
+  })
 }

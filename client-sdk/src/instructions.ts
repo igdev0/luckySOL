@@ -3,11 +3,11 @@ import {vec, field, variant, fixedArray,} from '@dao-xyz/borsh';
 
 export class PoolStorageData {
   @field({type: "u64"})
-  initial_amount: bigint;
+  initial_amount: string;
   @field({type: "u64"})
-  ticket_price: bigint;
+  ticket_price: string;
   @field({type: "u64"})
-  draft_count: bigint;
+  draft_count: string;
 
   constructor(data: PoolStorageData) {
     this.draft_count = data.draft_count

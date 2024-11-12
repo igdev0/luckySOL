@@ -83,7 +83,7 @@ export function processDepositInstruction(amount: bigint, payer: PublicKey, pool
     })
 }
 
-export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey,  ) {
+export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey ) {
   const data = Buffer.from(serialize(ticketAccountData));
   const [poolPDA] = findPoolStoragePDA(poolAuthority);
   const [mintPDA] = findReceiptPoolMintPDA(poolAuthority);

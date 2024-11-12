@@ -16,3 +16,19 @@ export function findReceiptPoolMintPDA(address: PublicKey) {
   ];
   return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
 }
+
+export function findPlayerAccountPDA(address: PublicKey) {
+  const seeds = [
+      Uint8Array.from(Buffer.from(PoolStorageSeed.PlayerAccount)),
+      Uint8Array.from(address.toBuffer())
+  ];
+  return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
+}
+
+export function findPlayerTokenAccountPDA(address: PublicKey) {
+  const seeds = [
+      Uint8Array.from(Buffer.from(PoolStorageSeed.PlayerTokenAccount)),
+      Uint8Array.from(address.toBuffer())
+  ];
+  return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
+}

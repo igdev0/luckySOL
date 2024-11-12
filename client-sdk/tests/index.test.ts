@@ -1,8 +1,8 @@
 import {
   Connection,
   Keypair, LAMPORTS_PER_SOL,
-  sendAndConfirmTransaction,
-  Transaction,
+  sendAndConfirmTransaction, SendTransactionError,
+  Transaction, TransactionError,
 } from '@solana/web3.js';
 import * as path from 'path';
 import {
@@ -10,10 +10,15 @@ import {
   PoolStorageData,
   findPoolStoragePDA,
   processPoolInitializationInstruction,
-  POOL_STORAGE_DATA_LENGTH, processDepositInstruction, TicketAccountData,
+  POOL_STORAGE_DATA_LENGTH,
+  processDepositInstruction,
+  TicketAccountData,
+  processPurchaseTicketInstruction,
+  findPlayerTokenAccountPDA, PurchaseTicket,
 } from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
+import {serialize} from '@dao-xyz/borsh';
 
 const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
@@ -90,7 +95,44 @@ describe("Program main features", () => {
     // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
     // @todo:
     // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
-    await delay(1000);
+    // await delay(1000);
 
+  });
+
+
+  it('should be able to purchase tickets', async () => {
+    const player = Keypair.generate();
+    await connection.requestAirdrop(player.publicKey, 50 * LAMPORTS_PER_SOL);
+    // Wait until the airdrop completes
+    await delay()
+    const ticket = new Uint8Array([
+      250, 35, 208, 216, 126, 242, 49, 214, 210, 183, 43, 30, 84, 173, 177, 56, 200, 187, 71,
+      86, 115, 240, 96, 243, 152, 186, 199, 104, 179, 40, 50, 8]);
+    const ticketAccountData = new TicketAccountData({total_tickets: BigInt(1), merkle_root: ticket});
+    const instruction = processPurchaseTicketInstruction(ticketAccountData, payer.publicKey, player.publicKey);
+
+    const tx = new Transaction().add(instruction);
+    await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
+
+    const [playerTokenAccountPDA] = findPlayerTokenAccountPDA(player.publicKey);
+    const playerTokenAccountInfo = await connection.getAccountInfo(playerTokenAccountPDA)
+    expect(playerTokenAccountInfo?.data).not.toBeNull();
+    // await delay()
+  });
+
+  it('should be able to serialize ticket account data', () => {
+    const ticket = new Uint8Array([
+      250, 35, 208, 216, 126, 242, 49, 214, 210, 183, 43, 30, 84, 173, 177, 56, 200, 187, 71,
+      86, 115, 240, 96, 243, 152, 186, 199, 104, 179, 40, 50, 8]);
+
+    const expectedBinaries = new Uint8Array([
+      3, 250, 35, 208, 216, 126, 242, 49, 214, 210, 183, 43, 30, 84, 173, 177, 56, 200, 187, 71,
+      86, 115, 240, 96, 243, 152, 186, 199, 104, 179, 40, 50, 8, 1, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+
+      const data = new TicketAccountData({total_tickets: BigInt(1), merkle_root: ticket});
+      const serializedInstr = new PurchaseTicket(data);
+      const serialized = serialize(serializedInstr);
+      expect(Array.from(serialized)).toEqual(Array.from(expectedBinaries));
   });
 })

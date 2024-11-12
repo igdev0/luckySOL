@@ -10,8 +10,8 @@ import {
   PoolStorageData,
   findPoolStoragePDA,
   processPoolInitializationInstruction,
-  POOL_STORAGE_DATA_LENGTH, processDepositInstruction,
-} from '../dist/index.esm';
+  POOL_STORAGE_DATA_LENGTH, processDepositInstruction, TicketAccountData,
+} from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
 
@@ -79,7 +79,7 @@ describe("Program main features", () => {
     })
 
   it('should deposit 10 SOL into the pool', async () => {
-    const tx = new Transaction().add(processDepositInstruction(10 * LAMPORTS_PER_SOL, payer.publicKey, payer.publicKey));
+    const tx = new Transaction().add(processDepositInstruction(BigInt(10 * LAMPORTS_PER_SOL), payer.publicKey, payer.publicKey));
     await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"});
 
     const [poolPDA] = findPoolStoragePDA(payer.publicKey);

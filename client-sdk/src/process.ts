@@ -1,4 +1,3 @@
-import {InitializePool} from '../dist/instructions.js';
 import {PublicKey, SYSVAR_RENT_PUBKEY, TransactionInstruction} from '@solana/web3.js';
 import {serialize} from '@dao-xyz/borsh';
 import {PROGRAM_ID, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID} from './constants.js';
@@ -8,8 +7,7 @@ import {
   findPoolStoragePDA,
   findReceiptPoolMintPDA
 } from './helpers.js';
-import {Deposit, TicketAccountData} from './instructions';
-import * as timers from 'node:timers';
+import {Deposit, InitializePool, TicketAccountData} from './instructions';
 
 export function processPoolInitializationInstruction(data: InitializePool, payer: PublicKey) {
   const dataSerialized = Buffer.from(serialize(data));

@@ -7,7 +7,14 @@ import {
   findPoolStoragePDA,
   findReceiptPoolMintPDA
 } from './helpers.js';
-import {Deposit, InitializePool, PurchaseTicket, TicketAccountData} from './instructions';
+import {
+  Deposit,
+  DraftWinner,
+  InitializePool,
+  PurchaseTicket,
+  SelectWinnersAndAirdrop,
+  TicketAccountData
+} from './instructions';
 
 export function processPoolInitializationInstruction(data: InitializePool, payer: PublicKey) {
   const dataSerialized = Buffer.from(serialize(data));
@@ -58,30 +65,30 @@ export function processDepositInstruction(amount: bigint, payer: PublicKey, pool
   const deposit = new Deposit(amount);
   const data = Buffer.from(serialize(deposit));
   const [poolPDA] = findPoolStoragePDA(pool_authority);
-    return new TransactionInstruction({
-      data,
-      programId: PROGRAM_ID,
-      keys: [
-        {
-          pubkey: payer,
-          isSigner: true,
-          isWritable: false,
-        },
-        {
-          pubkey: poolPDA,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: SYSTEM_PROGRAM_ID,
-          isSigner: false,
-          isWritable: false,
-        }
-      ]
-    })
+  return new TransactionInstruction({
+    data,
+    programId: PROGRAM_ID,
+    keys: [
+      {
+        pubkey: payer,
+        isSigner: true,
+        isWritable: false,
+      },
+      {
+        pubkey: poolPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: SYSTEM_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false,
+      }
+    ]
+  });
 }
 
-export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey ) {
+export function processPurchaseTicketInstruction(ticketAccountData: TicketAccountData, poolAuthority: PublicKey, player: PublicKey) {
   const data = Buffer.from(serialize(new PurchaseTicket(ticketAccountData)));
   const [poolPDA] = findPoolStoragePDA(poolAuthority);
   const [mintPDA] = findReceiptPoolMintPDA(poolAuthority);
@@ -147,5 +154,43 @@ export function processPurchaseTicketInstruction(ticketAccountData: TicketAccoun
         isWritable: false,
       }
     ]
-  })
+  });
+}
+
+export function processWinnersAndAirdrop(poolAuthority: PublicKey, winners: DraftWinner[]) {
+  const data = Buffer.from(serialize(new SelectWinnersAndAirdrop(winners)));
+  const [poolStoragePDA] = findPoolStoragePDA(poolAuthority);
+  const [poolMintPDA] = findReceiptPoolMintPDA(poolAuthority);
+  return new TransactionInstruction({
+    data,
+    programId: PROGRAM_ID,
+    keys: [
+      {
+        pubkey: poolAuthority,
+        isSigner: true,
+        isWritable: false,
+      },
+      {
+        pubkey: poolStoragePDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: poolMintPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      ...winners.flatMap(winner => ([
+      {
+        pubkey: winner.address,
+        isWritable: false,
+        isSigner: false
+      },
+      {
+        pubkey: winner.token_account,
+        isSigner: false,
+        isWritable: true
+      }
+    ]))]
+  });
 }

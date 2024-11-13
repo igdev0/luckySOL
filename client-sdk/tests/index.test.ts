@@ -1,8 +1,8 @@
 import {
   Connection,
   Keypair, LAMPORTS_PER_SOL,
-  sendAndConfirmTransaction, SendTransactionError,
-  Transaction, TransactionError,
+  sendAndConfirmTransaction,
+  Transaction,
 } from '@solana/web3.js';
 import * as path from 'path';
 import {

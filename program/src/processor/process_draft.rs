@@ -110,7 +110,8 @@ pub fn process_draft(
     if stake_pool_pda != *pool_vault_account.key {
         return Err(LotteryError::InvalidStakePoolVault.into());
     }
-
+    // @todo:
+    // - Verify if all of the prizes combined is larger than the stake pool amount
     draft_winners
         .iter()
         .map(|winner| -> ProgramResult {

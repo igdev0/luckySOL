@@ -14,12 +14,14 @@ import {
   processDepositInstruction,
   TicketAccountData,
   processPurchaseTicketInstruction,
-  findPlayerTokenAccountPDA, PurchaseTicket, TOKEN_PROGRAM_ID,
+  findPlayerTokenAccountPDA, PurchaseTicket, TOKEN_PROGRAM_ID, DraftWinner,
 } from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
 import {serialize} from '@dao-xyz/borsh';
 import {getAccount} from '@solana/spl-token';
+import {MerkleTree} from 'merkletreejs';
+import * as crypto from 'node:crypto';
 
 const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
@@ -27,6 +29,7 @@ const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXu
 const payer_buffer = fs.readFileSync(payer_path, "utf-8");
 const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(payer_buffer)));
 
+const player = Keypair.generate();
 let connection:Connection;
 async function delay(ms = 1000) {
   return new Promise(resolve => {
@@ -35,7 +38,9 @@ async function delay(ms = 1000) {
     }, ms)
   })
 }
-
+function sha256(data:string) {
+  return crypto.createHash('sha256').update(data).digest()
+}
 let validatorProcess: child_process.ChildProcess;
 beforeAll(async () => {
   validatorProcess = child_process.spawn('solana-test-validator', ["--reset"], { stdio: 'inherit' });
@@ -100,15 +105,17 @@ describe("Program main features", () => {
   });
 
 
+  const tickets = ["1", "2", "3"].map(item => sha256(item));
+  const tree = new MerkleTree(tickets, sha256);
+
   it('should be able to purchase tickets', async () => {
-    const player = Keypair.generate();
     await connection.requestAirdrop(player.publicKey, 50 * LAMPORTS_PER_SOL);
     // Wait until the airdrop completes
+
+    const merkleRoot = tree.getRoot()
     await delay()
-    const ticket = new Uint8Array([
-      250, 35, 208, 216, 126, 242, 49, 214, 210, 183, 43, 30, 84, 173, 177, 56, 200, 187, 71,
-      86, 115, 240, 96, 243, 152, 186, 199, 104, 179, 40, 50, 8]);
-    const ticketAccountData = new TicketAccountData({total_tickets: BigInt(1), merkle_root: ticket});
+
+    const ticketAccountData = new TicketAccountData({total_tickets: BigInt(tickets.length), merkle_root: Uint8Array.from(merkleRoot)});
     const instruction = processPurchaseTicketInstruction(ticketAccountData, payer.publicKey, player.publicKey);
 
     const tx = new Transaction().add(instruction);

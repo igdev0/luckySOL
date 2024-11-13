@@ -157,7 +157,7 @@ export function processPurchaseTicketInstruction(ticketAccountData: TicketAccoun
   });
 }
 
-export function processWinnersAndAirdrop(poolAuthority: PublicKey, winners: DraftWinner[]) {
+export function processDraft(poolAuthority: PublicKey, winners: DraftWinner[]) {
   const data = Buffer.from(serialize(new SelectWinnersAndAirdrop(winners)));
   const [poolStoragePDA] = findPoolStoragePDA(poolAuthority);
   const [poolMintPDA] = findReceiptPoolMintPDA(poolAuthority);

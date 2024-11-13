@@ -14,11 +14,12 @@ import {
   processDepositInstruction,
   TicketAccountData,
   processPurchaseTicketInstruction,
-  findPlayerTokenAccountPDA, PurchaseTicket,
+  findPlayerTokenAccountPDA, PurchaseTicket, TOKEN_PROGRAM_ID,
 } from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
 import {serialize} from '@dao-xyz/borsh';
+import {getAccount} from '@solana/spl-token';
 
 const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
@@ -95,7 +96,6 @@ describe("Program main features", () => {
     // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
     // @todo:
     // - Figure out why the sendAndConfirmTransaction, is not aborting wss connection when specified a signal
-    // await delay(1000);
 
   });
 
@@ -115,10 +115,14 @@ describe("Program main features", () => {
     await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
 
     const [playerTokenAccountPDA] = findPlayerTokenAccountPDA(player.publicKey);
-    const playerTokenAccountInfo = await connection.getAccountInfo(playerTokenAccountPDA)
-    expect(playerTokenAccountInfo?.data).not.toBeNull();
-    // await delay()
-  });
+    let tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
+    expect(tokenAccount.amount).toEqual(BigInt(1));
+    const newTx = new Transaction().add(instruction);
+    await sendAndConfirmTransaction(connection, newTx, [player], {commitment: "confirmed"});
+    tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
+    expect(tokenAccount.amount).toEqual(BigInt(2));
+    await delay(1000);
+  }, 10000);
 
   it('should be able to serialize ticket account data', () => {
     const ticket = new Uint8Array([
@@ -135,4 +139,5 @@ describe("Program main features", () => {
       const serialized = serialize(serializedInstr);
       expect(Array.from(serialized)).toEqual(Array.from(expectedBinaries));
   });
+
 })

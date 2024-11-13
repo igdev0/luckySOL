@@ -26,6 +26,7 @@
     "@solana/web3.js": "^1.95.4"
   },
   "dependencies": {
-    "@dao-xyz/borsh": "^5.2.3"
+    "@dao-xyz/borsh": "^5.2.3",
+    "@solana/spl-token": "^0.4.9"
   }
 }

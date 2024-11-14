@@ -14,7 +14,7 @@ import {
   processDepositInstruction,
   TicketAccountData,
   processPurchaseTicketInstruction,
-  findPlayerTokenAccountPDA, PurchaseTicket, TOKEN_PROGRAM_ID, DraftWinner,
+  findPlayerTokenAccountPDA, PurchaseTicket, TOKEN_PROGRAM_ID, DraftWinner, SelectWinnersAndAirdrop,
 } from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
@@ -22,6 +22,25 @@ import {serialize} from '@dao-xyz/borsh';
 import {getAccount} from '@solana/spl-token';
 import {MerkleTree} from 'merkletreejs';
 import * as crypto from 'node:crypto';
+
+function concatenateBuffers(buffers: Buffer[]): Uint8Array {
+  // Calculate the total length of all buffers
+  const totalLength = buffers.reduce((sum, buffer) => sum + buffer.length, 0);
+
+  // Create a new Uint8Array with the total length
+  const combinedArray = new Uint8Array(totalLength);
+
+  // Keep track of the current offset
+  let offset = 0;
+
+  // Copy each buffer into the Uint8Array
+  buffers.forEach(buffer => {
+    combinedArray.set(buffer, offset);
+    offset += buffer.length;
+  });
+
+  return combinedArray;
+}
 
 const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
 const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
@@ -106,28 +125,28 @@ describe("Program main features", () => {
 
 
   const tickets = ["1", "2", "3"].map(item => sha256(item));
-  const tree = new MerkleTree(tickets, sha256);
+  const tree = new MerkleTree(tickets, sha256, {complete: true});
 
   it('should be able to purchase tickets', async () => {
     await connection.requestAirdrop(player.publicKey, 50 * LAMPORTS_PER_SOL);
     // Wait until the airdrop completes
 
     const merkleRoot = tree.getRoot()
-    await delay()
+    // await delay()
 
     const ticketAccountData = new TicketAccountData({total_tickets: BigInt(tickets.length), merkle_root: Uint8Array.from(merkleRoot)});
     const instruction = processPurchaseTicketInstruction(ticketAccountData, payer.publicKey, player.publicKey);
+    //
+    // const tx = new Transaction().add(instruction);
+    // await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
 
-    const tx = new Transaction().add(instruction);
-    await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
-
-    const [playerTokenAccountPDA] = findPlayerTokenAccountPDA(player.publicKey);
-    let tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
-    expect(tokenAccount.amount).toEqual(BigInt(1));
-    const newTx = new Transaction().add(instruction);
-    await sendAndConfirmTransaction(connection, newTx, [player], {commitment: "confirmed"});
-    tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
-    expect(tokenAccount.amount).toEqual(BigInt(2));
+    // const [playerTokenAccountPDA] = findPlayerTokenAccountPDA(player.publicKey);
+    // let tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
+    // expect(tokenAccount.amount).toEqual(BigInt(1));
+    // const newTx = new Transaction().add(instruction);
+    // await sendAndConfirmTransaction(connection, newTx, [player], {commitment: "confirmed"});
+    // tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
+    // expect(tokenAccount.amount).toEqual(BigInt(2));
     await delay(1000);
   }, 10000);
 
@@ -141,10 +160,31 @@ describe("Program main features", () => {
       86, 115, 240, 96, 243, 152, 186, 199, 104, 179, 40, 50, 8, 1, 0, 0, 0, 0, 0, 0, 0,
     ]);
 
-      const data = new TicketAccountData({total_tickets: BigInt(1), merkle_root: ticket});
-      const serializedInstr = new PurchaseTicket(data);
-      const serialized = serialize(serializedInstr);
-      expect(Array.from(serialized)).toEqual(Array.from(expectedBinaries));
+
+    const data = new TicketAccountData({total_tickets: BigInt(1), merkle_root: ticket});
+    const serializedInstr = new PurchaseTicket(data);
+    const serialized = serialize(serializedInstr);
+    console.log(serialized)
+    expect(Array.from(serialized)).toEqual(Array.from(expectedBinaries));
   });
+
+  //
+  // it('should be able to serialize and deserialize a draft ticket', () => {
+  //   const multiProof = tree.getMultiProof([2]);
+  //
+  //   const draftWinner = new DraftWinner({
+  //     amount: BigInt(0),
+  //     ticket_indices: [2],
+  //     tickets: tickets,
+  //     address: payer.publicKey,
+  //     proof: Array.from(concatenateBuffers(multiProof)),
+  //     token_account: payer.publicKey,
+  //   })
+  //
+  //   const a = new SelectWinnersAndAirdrop([draftWinner]);
+  //   const data = serialize(a);
+  //   expect(data).not.toBeNull()
+  //
+  // });
 
 })

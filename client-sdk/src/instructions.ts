@@ -29,15 +29,15 @@ export class DraftWinner {
   @field({type: "u64"})
   amount: bigint;
   @field({type: vec("u8")})
-  proof: Uint8Array;
-  @field({type: vec("u32")})
-  ticket_indices: number[];
-  @field({type: vec(vec("u8"))})
+  proof: number[];
+  @field({type: vec("u64")})
+  ticket_indices: bigint[];
+  @field({type: vec(fixedArray("u8", 32))})
   tickets: Uint8Array[];
-  @field({type: "u64"})
-  address: PublicKey;
-  @field({type: "u64"})
-  token_account: PublicKey;
+  @field({type: fixedArray('u8', 32)})
+  address: Uint8Array;
+  @field({type: fixedArray('u8', 32)})
+  token_account: Uint8Array;
   constructor(fields: DraftWinner) {
     this.amount = fields.amount;
     this.proof = fields.proof;
@@ -54,7 +54,7 @@ export class TicketAccountData {
   })
   merkle_root: Uint8Array
   @field({type: "u64"})
-  total_tickets: bigint
+  total_tickets: string
 
   constructor(fields: TicketAccountData) {
     this.merkle_root = fields.merkle_root;
@@ -92,9 +92,9 @@ export class PurchaseTicket {
 @variant(4)
 export class SelectWinnersAndAirdrop {
   @field({type: vec(DraftWinner)})
-  data: DraftWinner[]
+  accountData: Array<DraftWinner>
   constructor(data: DraftWinner[]) {
-    this.data = data;
+    this.accountData = data;
   }
 }
 

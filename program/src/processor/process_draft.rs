@@ -117,7 +117,9 @@ pub fn process_draft(
         .map(|winner| -> ProgramResult {
             let account_info = accounts
                 .find(|account| account.key == &winner.address)
-                .expect("Unable to find the account in the list");
+                .expect(
+                    format!("Unable to find the account {} in the list", winner.address).as_str(),
+                );
             let player_token_account = accounts
                 .find(|account| account.key == &winner.token_account)
                 .expect("Unable to find the token account in the list");

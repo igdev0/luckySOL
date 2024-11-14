@@ -1,12 +1,12 @@
 import {PublicKey, SYSVAR_RENT_PUBKEY, TransactionInstruction} from '@solana/web3.js';
 import {serialize} from '@dao-xyz/borsh';
-import {PROGRAM_ID, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID} from './constants.js';
+import {PROGRAM_ID, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID} from './constants';
 import {
   findPlayerAccountPDA,
   findPlayerTokenAccountPDA,
   findPoolStoragePDA,
   findReceiptPoolMintPDA
-} from './helpers.js';
+} from './helpers';
 import {
   Deposit,
   DraftWinner,
@@ -161,6 +161,18 @@ export function processDraftWinners(poolAuthority: PublicKey, winners: DraftWinn
   const data = Buffer.from(serialize(new SelectWinnersAndAirdrop(winners)));
   const [poolStoragePDA] = findPoolStoragePDA(poolAuthority);
   const [poolMintPDA] = findReceiptPoolMintPDA(poolAuthority);
+  const keys = winners.flatMap(winner => ([
+    {
+      pubkey: new PublicKey(winner.address),
+      isWritable: true,
+      isSigner: false
+    },
+    {
+      pubkey: new PublicKey(winner.token_account),
+      isSigner: false,
+      isWritable: true
+    }
+  ]));
   return new TransactionInstruction({
     data,
     programId: PROGRAM_ID,
@@ -180,17 +192,10 @@ export function processDraftWinners(poolAuthority: PublicKey, winners: DraftWinn
         isSigner: false,
         isWritable: true,
       },
-      ...winners.flatMap(winner => ([
       {
-        pubkey: winner.address,
-        isWritable: false,
-        isSigner: false
-      },
-      {
-        pubkey: winner.token_account,
+      pubkey: TOKEN_PROGRAM_ID,
         isSigner: false,
-        isWritable: true
-      }
-    ]))]
+        isWritable: false,
+      }, ...keys]
   });
 }

@@ -72,7 +72,7 @@ export class Deposit {
 }
 
 @variant(2)
-export class Withdraw {
+export class PlayerWithdraw {
   @field({type: "u64"})
   amount: bigint
   constructor(amount: bigint) {
@@ -101,4 +101,4 @@ export class SelectWinnersAndAirdrop {
 @variant(5)
 export class ClosePlayerAccount {}
 
-export type Instruction = InitializePool | Deposit | Withdraw | PurchaseTicket | SelectWinnersAndAirdrop | ClosePlayerAccount;
+export type Instruction = InitializePool | Deposit | PlayerWithdraw | PurchaseTicket | SelectWinnersAndAirdrop | ClosePlayerAccount;

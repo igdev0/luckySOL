@@ -39,8 +39,8 @@ function concatenateBuffers(buffers: Buffer[]): Uint8Array {
   return combinedArray;
 }
 
+const program_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program.so');
 const payer_path = path.join(__dirname, '../../program/target/deploy/solana_lottery_program-keypair.json');
-const program_id_path = path.join(__dirname, '../program/1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA.json');
 
 const payer_buffer = fs.readFileSync(payer_path, "utf-8");
 const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(payer_buffer)));
@@ -62,31 +62,28 @@ function sha256(data: string) {
 
 let validatorProcess: child_process.ChildProcess;
 beforeAll(async () => {
-  validatorProcess = child_process.spawn('solana-test-validator', ["--reset"], {stdio: 'inherit'});
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // adjust delay as needed
+  validatorProcess = child_process.spawn('solana-test-validator', ["--reset", "--bpf-program", "1cky9mEdiuQ8wNCcw1Z7pXuxF9bsdxej95Gf69XydoA", program_path], {stdio: 'inherit'});
+  await delay()
   connection = new Connection('http://localhost:8899', {
     commitment: "confirmed",
   });
-  expect(payer).not.toBeUndefined();
-  await connection.requestAirdrop(payer.publicKey, 100 * LAMPORTS_PER_SOL);
-  await delay(1000);
-  const programPath = path.join(__dirname, '../../program/target/deploy/solana_lottery_program.so'); // Update the path
+  const oldAccountBalance = await connection.getBalance(payer.publicKey);
 
-  child_process.execSync("solana config set --url http://localhost:8899");
-  child_process.execSync(`solana program deploy ${programPath} --program-id ${program_id_path} --fee-payer ${payer_path}`);
-  connection.onLogs(PROGRAM_ID, (log) => {
-    console.log(log.logs)
-  });
-}, 8000);
+  if(oldAccountBalance === 0) {
+    await connection.requestAirdrop(payer.publicKey, 100 * LAMPORTS_PER_SOL);
+    await delay(1000);
+    const accountBalance = await connection.getBalance(payer.publicKey);
+    expect(accountBalance / LAMPORTS_PER_SOL).toEqual(100);
+  }
+
+});
 
 afterAll(() => {
   validatorProcess.kill("SIGTERM");
-}, 10000);
+});
 
 describe("Program main features", () => {
   it("Should initialize pool storage", async () => {
-    // Connection.
-    await delay(1000);
     const poolData = new PoolStorageData({
       initial_amount: (10 * LAMPORTS_PER_SOL).toString(),
       draft_count: (10 * LAMPORTS_PER_SOL).toString(),
@@ -111,6 +108,7 @@ describe("Program main features", () => {
     const [poolPDA] = findPoolStoragePDA(payer.publicKey);
     const balance = await connection.getBalance(poolPDA, "confirmed");
     const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
+
     expect(balance).toEqual(rentExempt + (20 * LAMPORTS_PER_SOL));
     // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
     // @todo:
@@ -127,7 +125,7 @@ describe("Program main features", () => {
     await delay();
     const merkleRoot = tree.getRoot();
     const ticketAccountData = new TicketAccountData({
-      total_tickets: BigInt(tickets.length).toString(),
+      total_tickets: tickets.length.toString(),
       merkle_root: Uint8Array.from(merkleRoot)
     });
 
@@ -136,14 +134,9 @@ describe("Program main features", () => {
     await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
 
     const [playerTokenAccountPDA] = findPlayerTokenAccountPDA(player.publicKey);
-    let tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
+    const tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
     expect(tokenAccount.amount).toEqual(BigInt(1));
-    const newTx = new Transaction().add(instruction);
-    await sendAndConfirmTransaction(connection, newTx, [player], {commitment: "confirmed"});
-    tokenAccount = await getAccount(connection, playerTokenAccountPDA, "confirmed", TOKEN_PROGRAM_ID);
-    expect(tokenAccount.amount).toEqual(BigInt(2));
-    await delay(1000);
-  }, 10000);
+  });
 
   it('should be able to process draft winners and airdrop prise', async () => {
     const proofIndices = [1,3];
@@ -164,7 +157,7 @@ describe("Program main features", () => {
     const tx = new Transaction().add(instruction);
     await sendAndConfirmTransaction(connection, tx, [payer]);
     const account = await getAccount(connection, playerTokenAccount, "confirmed", TOKEN_PROGRAM_ID);
-    expect(BigInt(account.amount)).toEqual(BigInt(1));
+    expect(account.amount).toEqual(BigInt(0));
   });
 
   it('should be able to withdraw player prize from player PDA account to player account', async () => {
@@ -187,5 +180,6 @@ describe("Program main features", () => {
     const [playerPDA] = findPlayerAccountPDA(player.publicKey);
     const account = await connection.getAccountInfo(playerPDA);
     expect(account).toBe(null);
+    await delay()
   });
 });

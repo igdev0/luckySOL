@@ -143,7 +143,7 @@ pub fn process_withdraw_tx(
     amount: u64,
     recent_blockhash: Hash,
 ) -> Transaction {
-    let instruction_data = LotoInstruction::Withdraw(amount);
+    let instruction_data = LotoInstruction::PlayerWithdraw(amount);
     let accounts = vec![
         AccountMeta::new(player_account.pubkey(), true),
         AccountMeta::new(player_pda_account, false),

@@ -34,7 +34,7 @@ pub fn processor(
             process_pool_initialization(program_id, accounts, &pool_storage_account)
         }
         Instruction::Deposit(amount) => process_deposit(program_id, accounts, amount),
-        Instruction::Withdraw(amount) => {
+        Instruction::PlayerWithdraw(amount) => {
             process_player_withdraw::process_player_withdraw(program_id, accounts, amount)
         }
         Instruction::PurchaseTicket(account_data) => {

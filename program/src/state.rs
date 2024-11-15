@@ -5,7 +5,7 @@ use solana_program::pubkey::Pubkey;
 pub enum Instruction {
     InitializePool(PoolStorageData),
     Deposit(u64),
-    Withdraw(u64),
+    PlayerWithdraw(u64),
     PurchaseTicket(TicketAccountData),
     SelectWinnersAndAirdrop(Vec<DraftWinner>),
     ClosePlayerAccount,

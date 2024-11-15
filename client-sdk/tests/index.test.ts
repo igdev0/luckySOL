@@ -6,11 +6,11 @@ import {
   findPoolStoragePDA,
   InitializePool,
   POOL_STORAGE_DATA_LENGTH,
-  PoolStorageData,
+  PoolStorageData, processClosePlayerAccountInstruction,
   processDepositInstruction,
   processDraftWinners, processPlayerWithdraw,
   processPoolInitializationInstruction,
-  processPurchaseTicketInstruction,
+  processPurchaseTicketInstruction, PROGRAM_ID,
   TicketAccountData,
   TOKEN_PROGRAM_ID,
 } from 'lucky-sol-sdk';
@@ -74,6 +74,9 @@ beforeAll(async () => {
 
   child_process.execSync("solana config set --url http://localhost:8899");
   child_process.execSync(`solana program deploy ${programPath} --program-id ${program_id_path} --fee-payer ${payer_path}`);
+  connection.onLogs(PROGRAM_ID, (log) => {
+    console.log(log.logs)
+  });
 }, 8000);
 
 afterAll(() => {
@@ -168,12 +171,21 @@ describe("Program main features", () => {
     const [playerPDA] = findPlayerAccountPDA(player.publicKey);
     const prize = await connection.getBalance(playerPDA);
     const playerBalance = await connection.getBalance(player.publicKey);
-    const instruction = processPlayerWithdraw(BigInt(prize), player.publicKey);
+    const instruction = processPlayerWithdraw(BigInt(Math.round(prize / 2)), player.publicKey);
     const tx = new Transaction().add(instruction);
     const hash = await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
     const parsedTx = await connection.getParsedTransaction(hash);
     const newBalance  = await connection.getBalance(player.publicKey);
     const txFee = parsedTx?.meta?.fee as number;
-    expect(newBalance).toBeCloseTo((playerBalance + prize) - txFee);
+    expect(newBalance).toEqual((playerBalance + Math.round(prize / 2)) - txFee);
+  });
+
+  it('should be able to close player account', async () => {
+    const instruction = processClosePlayerAccountInstruction(payer.publicKey, player.publicKey);
+    const tx = new Transaction().add(instruction);
+    await sendAndConfirmTransaction(connection, tx, [player], {commitment: 'confirmed'});
+    const [playerPDA] = findPlayerAccountPDA(player.publicKey);
+    const account = await connection.getAccountInfo(playerPDA);
+    expect(account).toBe(null);
   });
 });

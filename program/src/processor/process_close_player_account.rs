@@ -3,6 +3,9 @@ use solana_program::{
     program::invoke_signed, pubkey::Pubkey,
 };
 
+use solana_program::program_pack::Pack;
+use spl_token_2022::state::Account;
+
 use crate::{error::LotteryError, state::PoolStorageSeed};
 
 use super::find_stake_pool_mint_pda;
@@ -30,29 +33,34 @@ pub fn process_close_player_account(
         return Err(LotteryError::InvalidAccount.into());
     }
 
-    let ix = spl_token_2022::instruction::close_account(
-        &spl_token_2022::ID,
-        player_token_pda_account.key,
-        player_account.key,
-        &mint_account.key,
-        &[],
-    )?;
+    let token_account_unpacked = Account::unpack(&player_token_pda_account.try_borrow_data()?)?;
 
-    let auth_bump = find_stake_pool_mint_pda(program_id, pool_authority.key).1;
+    // Close the token_account if its amount is 0
+    if token_account_unpacked.amount == 0 {
+        let ix = spl_token_2022::instruction::close_account(
+            &spl_token_2022::ID,
+            player_token_pda_account.key,
+            player_account.key,
+            &mint_account.key,
+            &[],
+        )?;
 
-    invoke_signed(
-        &ix,
-        &[
-            mint_account.clone(),
-            player_token_pda_account.clone(),
-            player_account.clone(),
-        ],
-        &[&[
-            PoolStorageSeed::ReceiptMint.as_bytes(),
-            pool_authority.key.as_ref(),
-            &[auth_bump],
-        ]],
-    )?;
+        let auth_bump = find_stake_pool_mint_pda(program_id, pool_authority.key).1;
+
+        invoke_signed(
+            &ix,
+            &[
+                mint_account.clone(),
+                player_token_pda_account.clone(),
+                player_account.clone(),
+            ],
+            &[&[
+                PoolStorageSeed::ReceiptMint.as_bytes(),
+                pool_authority.key.as_ref(),
+                &[auth_bump],
+            ]],
+        )?;
+    }
 
     let mut player_account_lamports = player_account.try_borrow_mut_lamports()?;
 

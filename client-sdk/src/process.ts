@@ -10,7 +10,7 @@ import {
 import {
   Deposit,
   DraftWinner,
-  InitializePool,
+  InitializePool, PlayerWithdraw,
   PurchaseTicket,
   SelectWinnersAndAirdrop,
   TicketAccountData
@@ -198,4 +198,25 @@ export function processDraftWinners(poolAuthority: PublicKey, winners: DraftWinn
         isWritable: false,
       }, ...keys]
   });
+}
+
+export function processPlayerWithdraw(amount: bigint, player: PublicKey) {
+  const [playerPDA] = findPlayerAccountPDA(player);
+  const data = Buffer.from(serialize(new PlayerWithdraw(amount)));
+  return new TransactionInstruction({
+    data,
+    programId: PROGRAM_ID,
+    keys: [
+      {
+        pubkey: player,
+        isSigner: true,
+        isWritable: true,
+      },
+      {
+        pubkey: playerPDA,
+        isSigner: false,
+        isWritable:true
+      }
+    ]
+  })
 }

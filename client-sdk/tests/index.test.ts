@@ -8,7 +8,7 @@ import {
   POOL_STORAGE_DATA_LENGTH,
   PoolStorageData,
   processDepositInstruction,
-  processDraftWinners,
+  processDraftWinners, processPlayerWithdraw,
   processPoolInitializationInstruction,
   processPurchaseTicketInstruction,
   PurchaseTicket,
@@ -184,4 +184,20 @@ describe("Program main features", () => {
     expect(BigInt(account.amount)).toEqual(BigInt(1));
   });
 
+  it('should be able to withdraw player prize from player PDA account to player account', async () => {
+
+    const [playerPDA] = findPlayerAccountPDA(player.publicKey);
+
+    const prize = await connection.getBalance(playerPDA);
+    const playerBalance = await connection.getBalance(player.publicKey);
+    const instruction = processPlayerWithdraw(BigInt(prize), player.publicKey);
+    const tx = new Transaction().add(instruction);
+
+    const hash = await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
+    const parsedTx = await connection.getParsedTransaction(hash);
+    const newBalance  = await connection.getBalance(player.publicKey);
+
+    const txFee = parsedTx?.meta?.fee as number;
+    expect(newBalance).toBeCloseTo((playerBalance + prize) - txFee);
+  });
 });

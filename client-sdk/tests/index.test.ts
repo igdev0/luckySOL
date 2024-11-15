@@ -11,14 +11,11 @@ import {
   processDraftWinners, processPlayerWithdraw,
   processPoolInitializationInstruction,
   processPurchaseTicketInstruction,
-  PurchaseTicket,
-  SelectWinnersAndAirdrop,
   TicketAccountData,
   TOKEN_PROGRAM_ID,
 } from 'lucky-sol-sdk';
 import * as fs from 'node:fs';
 import * as child_process from 'node:child_process';
-import {BinaryWriter, serialize} from '@dao-xyz/borsh';
 import {getAccount} from '@solana/spl-token';
 import {MerkleTree} from 'merkletreejs';
 import * as crypto from 'node:crypto';
@@ -67,15 +64,12 @@ let validatorProcess: child_process.ChildProcess;
 beforeAll(async () => {
   validatorProcess = child_process.spawn('solana-test-validator', ["--reset"], {stdio: 'inherit'});
   await new Promise((resolve) => setTimeout(resolve, 1000)); // adjust delay as needed
-  // Set up a connection to the local validator
   connection = new Connection('http://localhost:8899', {
     commitment: "confirmed",
   });
   expect(payer).not.toBeUndefined();
-
   await connection.requestAirdrop(payer.publicKey, 100 * LAMPORTS_PER_SOL);
   await delay(1000);
-
   const programPath = path.join(__dirname, '../../program/target/deploy/solana_lottery_program.so'); // Update the path
 
   child_process.execSync("solana config set --url http://localhost:8899");
@@ -95,19 +89,15 @@ describe("Program main features", () => {
       draft_count: (10 * LAMPORTS_PER_SOL).toString(),
       ticket_price: (.5 * LAMPORTS_PER_SOL).toString()
     });
-
     const poolInitialization = new InitializePool(poolData);
     const {blockhash} = await connection.getLatestBlockhash();
-
     const txInstruction = processPoolInitializationInstruction(poolInitialization, payer.publicKey);
     const tx = new Transaction({recentBlockhash: blockhash, feePayer: payer.publicKey}).add(txInstruction);
     await sendAndConfirmTransaction(connection, tx, [payer], {commitment: "confirmed"});
-
     const [poolPDA] = findPoolStoragePDA(payer.publicKey);
     const balance = await connection.getBalance(poolPDA, "confirmed");
 
     const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
-
     expect(balance).toEqual(rentExempt + (10 * LAMPORTS_PER_SOL));
   });
 
@@ -117,7 +107,6 @@ describe("Program main features", () => {
 
     const [poolPDA] = findPoolStoragePDA(payer.publicKey);
     const balance = await connection.getBalance(poolPDA, "confirmed");
-
     const rentExempt = await connection.getMinimumBalanceForRentExemption(POOL_STORAGE_DATA_LENGTH, "confirmed");
     expect(balance).toEqual(rentExempt + (20 * LAMPORTS_PER_SOL));
     // expect((balance - exemption) / LAMPORTS_PER_SOL).toEqual(10);
@@ -126,7 +115,6 @@ describe("Program main features", () => {
 
   });
 
-
   const tickets = ["A", "B", "C", "D", "E"].map(item => sha256(item));
   const tree = new MerkleTree(tickets, sha256);
 
@@ -134,15 +122,13 @@ describe("Program main features", () => {
     await connection.requestAirdrop(player.publicKey, 50 * LAMPORTS_PER_SOL);
     // Wait until the airdrop completes
     await delay();
-
     const merkleRoot = tree.getRoot();
-
     const ticketAccountData = new TicketAccountData({
       total_tickets: BigInt(tickets.length).toString(),
       merkle_root: Uint8Array.from(merkleRoot)
     });
+
     const instruction = processPurchaseTicketInstruction(ticketAccountData, payer.publicKey, player.publicKey);
-    //
     const tx = new Transaction().add(instruction);
     await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
 
@@ -159,12 +145,9 @@ describe("Program main features", () => {
   it('should be able to process draft winners and airdrop prise', async () => {
     const proofIndices = [1,3];
     const multiProof = tree.getMultiProof(proofIndices);
-
     const [playerAccount] = findPlayerAccountPDA(player.publicKey);
     const [playerTokenAccount] = findPlayerTokenAccountPDA(player.publicKey);
-
     const proof = Array.from(concatenateBuffers(multiProof));
-
     const draftWinner = new DraftWinner({
       amount: BigInt(1),
       ticket_indices: proofIndices.map(item => BigInt(item)),
@@ -174,29 +157,22 @@ describe("Program main features", () => {
       token_account: Uint8Array.from(playerTokenAccount.toBuffer()),
     });
 
-
     const instruction = processDraftWinners(payer.publicKey, [draftWinner]);
     const tx = new Transaction().add(instruction);
     await sendAndConfirmTransaction(connection, tx, [payer]);
-
     const account = await getAccount(connection, playerTokenAccount, "confirmed", TOKEN_PROGRAM_ID);
-
     expect(BigInt(account.amount)).toEqual(BigInt(1));
   });
 
   it('should be able to withdraw player prize from player PDA account to player account', async () => {
-
     const [playerPDA] = findPlayerAccountPDA(player.publicKey);
-
     const prize = await connection.getBalance(playerPDA);
     const playerBalance = await connection.getBalance(player.publicKey);
     const instruction = processPlayerWithdraw(BigInt(prize), player.publicKey);
     const tx = new Transaction().add(instruction);
-
     const hash = await sendAndConfirmTransaction(connection, tx, [player], {commitment: "confirmed"});
     const parsedTx = await connection.getParsedTransaction(hash);
     const newBalance  = await connection.getBalance(player.publicKey);
-
     const txFee = parsedTx?.meta?.fee as number;
     expect(newBalance).toBeCloseTo((playerBalance + prize) - txFee);
   });

@@ -8,6 +8,7 @@ import {
   findReceiptPoolMintPDA
 } from './helpers';
 import {
+  ClosePlayerAccount,
   Deposit,
   DraftWinner,
   InitializePool, PlayerWithdraw,
@@ -218,5 +219,49 @@ export function processPlayerWithdraw(amount: bigint, player: PublicKey) {
         isWritable:true
       }
     ]
+  })
+}
+
+export function processClosePlayerAccountInstruction(poolAuthority: PublicKey, player: PublicKey) {
+  const data = Buffer.from(serialize(new ClosePlayerAccount()));
+  const [poolMintPDA] = findReceiptPoolMintPDA(poolAuthority);
+  const [playerPDA] = findPlayerAccountPDA(player);
+  const [playerTokenPDA] = findPlayerTokenAccountPDA(player);
+
+  return new TransactionInstruction({
+    data,
+    programId: PROGRAM_ID,
+    keys: [
+      {
+        pubkey: player,
+        isSigner: true,
+        isWritable: true,
+      },
+      {
+        pubkey: playerPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: playerTokenPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: poolAuthority,
+        isSigner: false,
+        isWritable: true
+      },
+      {
+        pubkey: poolMintPDA,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: TOKEN_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false
+      }
+    ],
   })
 }

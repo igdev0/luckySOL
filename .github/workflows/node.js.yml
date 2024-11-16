@@ -22,17 +22,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}
-      working-directory: ./client-sdk
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: 'client-sdk/package-lock.json' # THIS PATTERN did the trick for me.
     - name: Install dependencies
       run: npm ci
-      working-directory: ./client-sdk
+      working-directory: client-sdk
     - name: Build library
       run: npm run build
-      working-directory: ./client-sdk
+      working-directory: client-sdk
     - name: Run tests
       run: npm test
-      working-directory: ./client-sdk
+      working-directory: client-sdk

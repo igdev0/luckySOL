@@ -21,7 +21,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      working-directory: ./client-sdk
     - name: Use Node.js ${{ matrix.node-version }}
       working-directory: ./client-sdk
       uses: actions/setup-node@v4

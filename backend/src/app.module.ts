@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TicketModule } from './ticket/ticket.module';
 import { Ticket } from './ticket/entities/ticket.entity';
 import { DatabaseTestModule } from './database-test/database-test.module';
+import { LuckyDraftModule } from './lucky-draft/lucky-draft.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { DatabaseTestModule } from './database-test/database-test.module';
     }),
     TicketModule,
     DatabaseTestModule,
+    LuckyDraftModule,
   ],
   controllers: [AppController],
   providers: [AppService],

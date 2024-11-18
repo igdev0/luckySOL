@@ -21,7 +21,6 @@ export class Ticket {
 
   @Column({
     type: 'text',
-    enum: ['PendingCreation', 'Created', 'Win', 'Loss'],
   })
   status: 'PendingCreation' | 'Created' | 'Win' | 'Loss';
 

@@ -7,12 +7,18 @@ import { TicketModule } from './ticket/ticket.module';
 import { Ticket } from './ticket/entities/ticket.entity';
 import { DatabaseTestModule } from './database-test/database-test.module';
 import { LuckyDraftModule } from './lucky-draft/lucky-draft.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      imports: [ConfigModule.forRoot({ isGlobal: true })],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        ScheduleModule.forRoot({
+          cronJobs: true,
+        }),
+      ],
       useFactory: (config: ConfigService) => {
         const DATABASE_HOST = config.get('DATABASE_HOST');
         const DATABASE_PORT = config.get('DATABASE_PORT');

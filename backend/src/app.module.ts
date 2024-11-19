@@ -8,6 +8,8 @@ import { Ticket } from './ticket/entities/ticket.entity';
 import { DatabaseTestModule } from './database-test/database-test.module';
 import { LuckyDraftModule } from './lucky-draft/lucky-draft.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SolanaConnectionModule } from './solana-connection/solana-connection.module';
+import { clusterApiUrl } from '@solana/web3.js';
 
 @Module({
   imports: [
@@ -40,6 +42,18 @@ import { ScheduleModule } from '@nestjs/schedule';
     TicketModule,
     DatabaseTestModule,
     LuckyDraftModule,
+    SolanaConnectionModule.forRootAsync({
+      imports: [ConfigService],
+      inject: [ConfigService],
+      useFactory(config: ConfigService) {
+        const endpoint =
+          config?.get('RPC_URL') ?? clusterApiUrl('devnet', true);
+        return {
+          endpoint,
+          commitmentOrConfig: 'confirmed',
+        };
+      },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

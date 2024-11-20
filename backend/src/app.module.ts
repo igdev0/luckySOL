@@ -10,6 +10,7 @@ import { LuckyDraftModule } from './lucky-draft/lucky-draft.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SolanaConnectionModule } from './solana-connection/solana-connection.module';
 import { clusterApiUrl } from '@solana/web3.js';
+import { LuckyDraftEntity } from './lucky-draft/entities/lucky-draft.entity';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { clusterApiUrl } from '@solana/web3.js';
           username: DATABASE_USER,
           password: DATABASE_PASSWORD,
           synchronize: true,
-          entities: [Ticket],
+          entities: [Ticket, LuckyDraftEntity],
         };
       },
     }),

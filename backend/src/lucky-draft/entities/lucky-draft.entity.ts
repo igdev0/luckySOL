@@ -20,7 +20,7 @@ export class LuckyDraftEntity {
     type: 'bigint',
     nullable: false,
   })
-  total_prizes_won: number;
+  total_prizes_won: BigInt;
 
   @CreateDateColumn()
   created_at: string;

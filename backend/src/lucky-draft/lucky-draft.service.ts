@@ -1,15 +1,115 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Repository } from 'typeorm';
+import { Ticket } from '../ticket/entities/ticket.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { SolanaConnectionService } from '../solana-connection/solana-connection.service';
+import { LuckyDraftEntity } from './entities/lucky-draft.entity';
+import { ConfigService } from '@nestjs/config';
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  TransactionMessage,
+  VersionedTransaction,
+} from '@solana/web3.js';
+import {
+  findPoolStoragePDA,
+  InitializePool,
+  POOL_STORAGE_DATA_LENGTH,
+  PoolStorageData,
+  processPoolInitializationInstruction,
+} from '../../../client-sdk';
 
 @Injectable()
-export class LuckyDraftService {
+export class LuckyDraftService implements OnApplicationBootstrap {
+  private connection: Connection;
+  private poolStoragePDA: PublicKey;
+  private poolAuthorityKeypair: Keypair;
+
+  constructor(
+    @InjectRepository(Ticket)
+    private readonly ticketRepository: Repository<Ticket>,
+    @Inject(SolanaConnectionService)
+    private readonly solanaConnection: SolanaConnectionService,
+    @InjectRepository(LuckyDraftEntity)
+    private readonly luckyDraftEntityRepository: Repository<LuckyDraftEntity>,
+    @Inject(ConfigService) private readonly config: ConfigService,
+  ) {}
+
+  async onApplicationBootstrap(): Promise<any> {
+    const connection = this.solanaConnection.getConnection();
+    const recentHash = await connection.getLatestBlockhash();
+    const seed = Uint8Array.from(
+      JSON.parse(this.config.get('POOL_AUTHORITY_KEYPAIR')),
+    );
+    const authority = Keypair.fromSecretKey(seed);
+    const [poolStoragePDA] = findPoolStoragePDA(authority.publicKey);
+
+    // Store those privately for convenience.
+    this.poolStoragePDA = poolStoragePDA;
+    this.connection = connection;
+    this.poolAuthorityKeypair = authority;
+
+    const poolStorageAccount = await connection.getAccountInfo(poolStoragePDA);
+    if (!!poolStorageAccount) {
+      return null;
+    }
+
+    const poolData = new PoolStorageData({
+      initial_amount: (10 * LAMPORTS_PER_SOL).toString(),
+      draft_count: '0',
+      ticket_price: (0.5 * LAMPORTS_PER_SOL).toString(),
+    });
+    const data = new InitializePool(poolData);
+    const initialize = processPoolInitializationInstruction(
+      data,
+      authority.publicKey,
+    );
+    const vmsg = new TransactionMessage({
+      payerKey: authority.publicKey,
+      recentBlockhash: recentHash.blockhash,
+      instructions: [initialize],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(vmsg);
+    tx.sign([authority]);
+    await connection.sendTransaction(tx);
+  }
+
   @Cron(CronExpression.EVERY_SECOND)
-  handleDraft() {
+  async handleDraft() {
     const luckyNumbers = this.generateLotteryNumbers();
+    const totalPrize = await this.getTotalPoolPrize();
+    console.log(totalPrize);
+
+    const luckyNumbersDraft = this.luckyDraftEntityRepository.create({
+      total_prizes_won: BigInt(0), // change this to the real prize won
+      lucky_draft: JSON.parse(JSON.stringify(luckyNumbers)),
+    });
+
+    // Save the drafted lucky numbers
+    await this.luckyDraftEntityRepository.save(luckyNumbersDraft);
+
+    const tickets = await this.ticketRepository.find({
+      where: { status: 'Created' },
+    });
+
     // @todo:
-    // - Look up in the database for tickets that have the status set to "Created"
+    // - Look up in the database for tickets that have the status set to "Created" ✅
+    // - Store the ticket draft
     // - Verify the numbers and check their winning amount.
     // - Interact with the luckySOL contract to airdrop the rewards.
+  }
+
+  private async getTotalPoolPrize() {
+    const totalAmount = await this.connection.getBalance(this.poolStoragePDA);
+    const minimumBalance =
+      await this.connection.getMinimumBalanceForRentExemption(
+        POOL_STORAGE_DATA_LENGTH,
+      );
+    return totalAmount - minimumBalance;
   }
 
   private generateRandomNumber(x = 0, y = 49) {

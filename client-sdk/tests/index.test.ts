@@ -85,9 +85,9 @@ afterAll(() => {
 describe("Program main features", () => {
   it("Should initialize pool storage", async () => {
     const poolData = new PoolStorageData({
-      initial_amount: (10 * LAMPORTS_PER_SOL).toString(),
-      draft_count: (10 * LAMPORTS_PER_SOL).toString(),
-      ticket_price: (.5 * LAMPORTS_PER_SOL).toString()
+      initial_amount: BigInt((10 * LAMPORTS_PER_SOL)),
+      draft_count: BigInt(0),
+      ticket_price: BigInt((.5 * LAMPORTS_PER_SOL))
     });
     const poolInitialization = new InitializePool(poolData);
     const {blockhash} = await connection.getLatestBlockhash();

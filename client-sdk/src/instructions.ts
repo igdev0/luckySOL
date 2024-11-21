@@ -3,16 +3,16 @@ import {vec, field, variant, fixedArray, serialize, serializer, BinaryWriter,} f
 
 export class PoolStorageData {
   @field({type: "u64"})
-  initial_amount: string;
+  ticket_price: BigInt;
   @field({type: "u64"})
-  ticket_price: string;
+  draft_count: BigInt;
   @field({type: "u64"})
-  draft_count: string;
+  initial_amount: BigInt;
 
   constructor(data: PoolStorageData) {
+    this.ticket_price = data.ticket_price
     this.draft_count = data.draft_count
     this.initial_amount = data.initial_amount
-    this.ticket_price = data.ticket_price
   }
 }
 

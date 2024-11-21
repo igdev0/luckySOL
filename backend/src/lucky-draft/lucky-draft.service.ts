@@ -58,9 +58,9 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     }
 
     const poolData = new PoolStorageData({
-      initial_amount: (10 * LAMPORTS_PER_SOL).toString(),
-      draft_count: '0',
-      ticket_price: (0.5 * LAMPORTS_PER_SOL).toString(),
+      ticket_price: BigInt(0.5 * LAMPORTS_PER_SOL),
+      draft_count: BigInt(0),
+      initial_amount: BigInt(10 * LAMPORTS_PER_SOL),
     });
     const data = new InitializePool(poolData);
     const initialize = processPoolInitializationInstruction(
@@ -82,8 +82,6 @@ export class LuckyDraftService implements OnApplicationBootstrap {
   async handleDraft() {
     const luckyNumbers = this.generateLotteryNumbers();
     const totalPrize = await this.getTotalPoolPrize();
-    console.log(totalPrize);
-
     const luckyNumbersDraft = this.luckyDraftEntityRepository.create({
       total_prizes_won: BigInt(0), // change this to the real prize won
       lucky_draft: JSON.parse(JSON.stringify(luckyNumbers)),
@@ -98,7 +96,7 @@ export class LuckyDraftService implements OnApplicationBootstrap {
 
     // @todo:
     // - Look up in the database for tickets that have the status set to "Created" ✅
-    // - Store the ticket draft
+    // - Store the ticket draft ✅
     // - Verify the numbers and check their winning amount.
     // - Interact with the luckySOL contract to airdrop the rewards.
   }

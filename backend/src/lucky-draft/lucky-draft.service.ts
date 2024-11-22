@@ -78,10 +78,30 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     await connection.sendTransaction(tx);
   }
 
+  splitLotteryPrize(totalPrize, weights = []) {
+    if (totalPrize <= 0) {
+      throw new Error('Total prize must be greater than 0.');
+    }
+
+    if (!Array.isArray(weights) || weights.length === 0) {
+      throw new Error('Weights must be an array with at least one value.');
+    }
+
+    const totalWeight = weights.reduce((acc, weight) => {
+      if (weight <= 0) throw new Error('Weights must be positive numbers.');
+      return acc + weight;
+    }, 0);
+
+    return weights.map((weight) => (totalPrize * weight) / totalWeight);
+  }
+
   @Cron(CronExpression.EVERY_SECOND)
   async handleDraft() {
     const luckyNumbers = this.generateLotteryNumbers();
     const totalPrize = await this.getTotalPoolPrize();
+
+    const result = this.splitLotteryPrize(totalPrize, [1, 1, 1, 1]);
+    console.log({ result, totalPrize });
     const luckyNumbersDraft = this.luckyDraftEntityRepository.create({
       total_prizes_won: BigInt(0), // change this to the real prize won
       lucky_draft: JSON.parse(JSON.stringify(luckyNumbers)),
@@ -90,9 +110,31 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     // Save the drafted lucky numbers
     await this.luckyDraftEntityRepository.save(luckyNumbersDraft);
 
-    const tickets = await this.ticketRepository.find({
-      where: { status: 'Created' },
+    const entities = await this.ticketRepository.find({
+      where: { status: 'PendingCreation' },
     });
+
+    const entitiesMatching = entities.map<
+      Ticket & { matches: (number | null)[][] }
+    >((entity) => {
+      const matches = (
+        JSON.parse(JSON.stringify(entity.lucky_draft)) as [number[]]
+      ).map((luckyTicket) => {
+        return luckyTicket.map<number | null>((luckyNumber) =>
+          luckyNumbers.has(luckyNumber) ? luckyNumber : null,
+        );
+      });
+
+      return {
+        ...entity,
+        matches,
+        matches_count: matches.flatMap(
+          (item) => item.filter((v) => v !== null).length,
+        ),
+      };
+    });
+
+    // entities.map(item => item)
 
     // @todo:
     // - Look up in the database for tickets that have the status set to "Created" ✅
@@ -126,6 +168,6 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     while (luckyNumbers.size !== 7) {
       luckyNumbers.add(this.generateRandomNumber(x, y));
     }
-    return Array.from(luckyNumbers);
+    return luckyNumbers;
   }
 }

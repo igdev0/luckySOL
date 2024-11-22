@@ -91,6 +91,8 @@ export class TicketService {
   }
 
   private hashTicket(lucky_draft: string) {
-    return crypto.hash('sha256', lucky_draft);
+    const hash = crypto.createHash('sha256');
+    hash.update(lucky_draft);
+    return hash.digest().toString('hex');
   }
 }

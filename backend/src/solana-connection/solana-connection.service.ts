@@ -1,4 +1,3 @@
-// solana-connection.service.ts
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Commitment, Connection, ConnectionConfig } from '@solana/web3.js';
 

@@ -134,11 +134,7 @@ export class LuckyDraftService implements OnApplicationBootstrap {
       };
     });
 
-    // entities.map(item => item)
-
     // @todo:
-    // - Look up in the database for tickets that have the status set to "Created" ✅
-    // - Store the ticket draft ✅
     // - Verify the numbers and check their winning amount.
     // - Interact with the luckySOL contract to airdrop the rewards.
   }

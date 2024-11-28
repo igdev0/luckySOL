@@ -135,7 +135,7 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     });
 
     // @todo:
-    // - Verify the numbers and check their winning amount.
+    // - Verify the numbers and check their winning amount.🕣
     // - Interact with the luckySOL contract to airdrop the rewards.
   }
 

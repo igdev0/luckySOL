@@ -1,3 +1,3 @@
 # LuckySOL
 
-This project is built on solana blockchain and the program is inspired by traditional lottery systems.
+Is a lottery program inspired by traditional lottery system built on solana blockchain.

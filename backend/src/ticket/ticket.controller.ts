@@ -17,7 +17,6 @@ export class TicketController {
 
   @Post()
   create(@Body() createTicketDto: CreateTicketDto) {
-    const luckyDraft = createTicketDto.lucky_draft;
     return this.ticketService.create(createTicketDto);
   }
 

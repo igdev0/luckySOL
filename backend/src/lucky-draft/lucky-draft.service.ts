@@ -20,7 +20,7 @@ import {
   POOL_STORAGE_DATA_LENGTH,
   PoolStorageData,
   processPoolInitializationInstruction,
-} from '../../../client-sdk';
+} from 'lucky-sol-sdk';
 
 @Injectable()
 export class LuckyDraftService implements OnApplicationBootstrap {

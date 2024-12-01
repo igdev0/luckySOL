@@ -139,6 +139,21 @@ export class LuckyDraftService implements OnApplicationBootstrap {
     // - Interact with the luckySOL contract to airdrop the rewards.
   }
 
+  async findAll(page, limit) {
+    const [data, total] = await this.luckyDraftEntityRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'ASC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
   private async getTotalPoolPrize() {
     const totalAmount = await this.connection.getBalance(this.poolStoragePDA);
     const minimumBalance =

@@ -67,13 +67,13 @@ export class LuckyDraftService implements OnApplicationBootstrap {
       data,
       authority.publicKey,
     );
-    const vmsg = new TransactionMessage({
+    const txmsg = new TransactionMessage({
       payerKey: authority.publicKey,
       recentBlockhash: recentHash.blockhash,
       instructions: [initialize],
     }).compileToV0Message();
 
-    const tx = new VersionedTransaction(vmsg);
+    const tx = new VersionedTransaction(txmsg);
     tx.sign([authority]);
     await connection.sendTransaction(tx);
   }

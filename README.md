@@ -1,3 +1,4 @@
 # LuckySOL
 
-Is a lottery program inspired by traditional lottery system built on solana blockchain. 
+This repository contains, the Solana program, the typescript client SDK, the backend and the frontend for the lottery
+game.
